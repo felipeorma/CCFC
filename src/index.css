@@ -1,0 +1,214 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Cavalry FC Colors */
+  --primary: #C8102E; /* Cavalry Red */
+  --secondary: #115740; /* Cavalry Green */
+  --accent: #ff5252;
+  --success: #00c853;
+  --warning: #ffab00;
+  --error: #ff1744;
+  --background: #121212;
+  --surface: #1e1e1e;
+  --text-primary: rgba(255, 255, 255, 0.87);
+  --text-secondary: rgba(255, 255, 255, 0.6);
+  --border: rgba(255, 255, 255, 0.12);
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--background);
+  color: var(--text-primary);
+}
+
+code, .stats {
+  font-family: 'JetBrains Mono', source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+.glassmorphism {
+  background: rgba(30, 30, 30, 0.4);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.card {
+  @apply bg-surface rounded-xl shadow-lg border border-border transition-all duration-300;
+}
+
+.card:hover {
+  @apply shadow-xl border-opacity-30;
+  transform: translateY(-2px);
+}
+
+.btn-primary {
+  @apply bg-primary text-white py-2 px-4 rounded-lg font-medium hover:bg-opacity-90 transition-all;
+}
+
+.btn-secondary {
+  @apply bg-secondary text-white py-2 px-4 rounded-lg font-medium hover:bg-opacity-90 transition-all;
+}
+
+.select-field {
+  @apply bg-surface border border-border rounded-lg p-2 text-text-primary focus:border-primary outline-none transition-all w-full font-semibold;
+}
+
+.select-field option {
+  @apply bg-surface text-text-primary;
+}
+
+/* Style for selected option in select boxes */
+.select-field-selected {
+  @apply bg-primary text-white;
+}
+
+.input-field {
+  @apply bg-surface border border-border rounded-lg p-2 text-text-primary focus:border-primary outline-none transition-all w-full;
+}
+
+.tab-active {
+  @apply border-b-2 border-primary text-primary;
+}
+
+.pitch {
+  @apply relative border border-border rounded-lg overflow-hidden;
+  height: 400px;
+  background-image: url("data:image/svg+xml,%3Csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='100%25' height='100%25' fill='%23121212'/%3E%3Cpattern id='pattern' width='28' height='28' patternUnits='userSpaceOnUse'%3E%3Crect width='10' height='10' fill='%23191919'/%3E%3C/pattern%3E%3Crect width='100%25' height='100%25' fill='url(%23pattern)'/%3E%3C/svg%3E");
+}
+
+.zone-highlight {
+  @apply absolute rounded-sm border border-white opacity-50 transition-all duration-150 cursor-pointer;
+}
+
+.zone-highlight:hover {
+  @apply opacity-80 bg-primary bg-opacity-50;
+}
+
+.zone-selected {
+  @apply bg-primary opacity-80;
+}
+
+.fade-in {
+  animation: fadeIn 0.5s ease-in-out forwards;
+}
+
+@keyframes fadeIn {
+  0% { opacity: 0; transform: translateY(10px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+.pulse {
+  animation: pulse 2s infinite;
+}
+
+/* Style all select boxes */
+select {
+  @apply select-field;
+}
+
+select:not([value=""]) {
+  @apply select-field-selected;
+}
+
+/* Tooltip styles */
+.recharts-tooltip-wrapper {
+  outline: none !important;
+}
+
+.recharts-default-tooltip {
+  background-color: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 8px !important;
+  padding: 8px !important;
+  color: var(--text-primary) !important;
+}
+
+.recharts-tooltip-label {
+  color: var(--text-primary) !important;
+  font-weight: 500 !important;
+  margin-bottom: 4px !important;
+}
+
+.recharts-tooltip-item-list {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.recharts-tooltip-item {
+  color: var(--text-primary) !important;
+  font-size: 14px !important;
+  padding: 2px 0 !important;
+  background-color: transparent !important;
+}
+
+.recharts-tooltip-item-name {
+  color: var(--text-secondary) !important;
+}
+
+.recharts-tooltip-item-value {
+  color: var(--text-primary) !important;
+  font-weight: 500 !important;
+}
+
+.recharts-tooltip-cursor {
+  fill: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Custom scrollbar styles */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Apply custom scrollbar to SelectContent */
+[data-radix-select-content] {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+[data-radix-select-content]::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+[data-radix-select-content]::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+[data-radix-select-content]::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+[data-radix-select-content]::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
