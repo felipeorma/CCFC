@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<style data-omelette-print-defaults>
+@media print {
+  h1, h2, h3, h4, h5, h6 { break-after: avoid; }
+  figure, table, pre, blockquote, img, svg, tr, [class~="card" i] { break-inside: avoid; }
+  img, svg { max-width: 100%; }
+  p { orphans: 3; widows: 3; }
+}
+</style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ColoColo Football Center · Mockups por sección</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --negro: #0b0b0d;
+    --rojo: #be1622;
+    --tinta: #1a1c20;
+    --tinta-2: #5b626d;
+    --tinta-3: #9aa1ac;
+    --linea: #e4e6ea;
+    --crema: #f6f7f8;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body {
+    font-family: 'Barlow', 'Helvetica Neue', Arial, sans-serif;
+    color: var(--tinta);
+    background: #555;
+  }
+  .page {
+    width: 210mm;
+    height: 297mm;
+    margin: 0 auto;
+    background: #fff;
+    position: relative;
+    padding: 14mm 15mm;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  @media screen {
+    .page { margin: 10mm auto; box-shadow: 0 6px 30px rgba(0,0,0,0.35); }
+  }
+  @page { size: A4 portrait; margin: 0; }
+  @media print {
+    body { background: #fff; }
+    .page { margin: 0; box-shadow: none; page-break-after: always; }
+    .page:last-child { page-break-after: auto; }
+  }
+
+  h1, h2, h3, .kicker, .num { font-family: 'Barlow Condensed', 'Barlow', sans-serif; }
+
+  /* ---------- Portada ---------- */
+  .cover { background: var(--negro); color: #fff; justify-content: space-between; padding: 24mm 20mm; }
+  .cover::after {
+    content: ''; position: absolute; right: -120px; top: -120px;
+    width: 460px; height: 460px; border-radius: 50%;
+    border: 60px solid rgba(190,22,34,0.13);
+  }
+  .cover-top { display: flex; align-items: center; gap: 14px; position: relative; z-index: 1; }
+  .crest {
+    width: 64px; height: 64px; border-radius: 50%;
+    background: #fff; color: var(--negro);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 13px; line-height: 0.9; text-align: center;
+    border: 3px solid var(--rojo);
+  }
+  .cover-org { font-size: 13px; letter-spacing: 0.32em; text-transform: uppercase; color: var(--tinta-3); }
+  .cover-mid { position: relative; z-index: 1; }
+  .cover-mid h1 {
+    font-weight: 800; font-size: 88px; line-height: 0.92; letter-spacing: -0.01em; text-transform: uppercase;
+  }
+  .cover-mid h1 span { color: var(--rojo); }
+  .cover-sub { margin-top: 18px; font-size: 19px; color: #c9cdd4; max-width: 60ch; line-height: 1.5; }
+  .cover-rule { height: 4px; width: 120px; background: var(--rojo); margin: 26px 0; }
+  .cover-meta { display: flex; gap: 40px; flex-wrap: wrap; }
+  .cover-meta div span { display: block; font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--tinta-3); margin-bottom: 5px; }
+  .cover-meta div strong { font-size: 19px; font-weight: 600; }
+  .cover-foot { font-size: 13px; color: var(--tinta-3); letter-spacing: 0.04em; position: relative; z-index: 1; }
+
+  /* ---------- Cabecera de sección de grupo ---------- */
+  .group { color: #fff; background: var(--negro); justify-content: center; }
+  .group .kicker { font-size: 15px; letter-spacing: 0.3em; text-transform: uppercase; color: var(--rojo); margin-bottom: 12px; }
+  .group h2 { font-size: 64px; font-weight: 800; text-transform: uppercase; line-height: 0.95; }
+  .group p { margin-top: 16px; font-size: 17px; color: #c9cdd4; max-width: 54ch; line-height: 1.55; }
+  .group .gnum { position: absolute; right: 18mm; bottom: 16mm; font-family: 'Barlow Condensed'; font-size: 150px; font-weight: 800; color: rgba(255,255,255,0.06); line-height: 1; }
+  .group .gcount { position: absolute; left: 20mm; bottom: 18mm; font-size: 13px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--tinta-3); }
+
+  /* ---------- Sección con mockup ---------- */
+  .sec { padding-top: 12mm; }
+  .sec-head { display: flex; align-items: center; gap: 13px; }
+  .sec-badge {
+    flex: none; width: 44px; height: 44px; border-radius: 12px; background: var(--negro); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Barlow Condensed'; font-weight: 700; font-size: 19px;
+    border-bottom: 3px solid var(--rojo);
+  }
+  .sec-head .meta { flex: 1; }
+  .sec-head .meta .kicker { font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--tinta-3); }
+  .sec-head .meta h3 { font-size: 31px; font-weight: 700; line-height: 1.0; margin-top: 1px; }
+  .sec-head .secno { font-family: 'Barlow Condensed'; font-weight: 800; font-size: 34px; color: var(--linea); }
+  .sec-head .secno b { color: var(--rojo); font-weight: 800; }
+  .sec-rule { height: 2px; background: var(--linea); margin: 4mm 0 0; position: relative; }
+  .sec-rule::before { content: ''; position: absolute; left: 0; top: 0; height: 2px; width: 56px; background: var(--rojo); }
+
+  /* dos dispositivos apilados */
+  .devices { display: flex; flex-direction: column; align-items: center; gap: 2.5mm; margin-top: 5mm; }
+  .dev-wrap { width: 142mm; }
+  .dev-cap {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 4px;
+    font-size: 10.5px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--tinta-2); font-weight: 600;
+  }
+  .dev-cap .ci {
+    width: 17px; height: 17px; border-radius: 5px; background: var(--negro); color: #fff;
+    display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700;
+  }
+  .dev-cap .cline { flex: 1; height: 1px; background: var(--linea); }
+
+  .mbp-screen {
+    position: relative;
+    background: #0a0a0c;
+    border: 2px solid #2f2f35;
+    border-radius: 14px;
+    padding: 8px 8px 9px;
+    box-shadow: inset 0 0 0 1.5px #000, 0 8px 20px rgba(0,0,0,0.20);
+  }
+  .mbp-notch {
+    position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+    width: 28%; max-width: 130px; height: 13px; background: #0a0a0c;
+    border-radius: 0 0 8px 8px; z-index: 3;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .mbp-notch::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: #1c1c22; box-shadow: inset 0 0 0 1.2px #2c2c34; }
+  .mbp-view { border-radius: 6px; overflow: hidden; background: #fff; border: 1px solid #000; }
+  .mbp-view img { width: 100%; display: block; }
+
+  .scroll-ind {
+    display: flex; flex-direction: column; align-items: center; gap: 1px;
+    color: var(--tinta-3);
+  }
+  .scroll-ind .ch { font-size: 13px; line-height: 0.7; }
+  .scroll-ind .ch:first-child { color: var(--rojo); }
+
+  .sec-desc { margin-top: auto; padding-top: 5mm; }
+  .sec-desc p { font-size: 14px; line-height: 1.55; color: var(--tinta); max-width: 86ch; }
+  .sec-feats { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 3mm; }
+  .chip {
+    font-size: 12px; font-weight: 600; color: var(--tinta-2);
+    background: var(--crema); border: 1px solid var(--linea); border-radius: 999px;
+    padding: 4px 11px;
+  }
+  .chip b { color: var(--rojo); font-weight: 700; }
+
+  .pg-foot {
+    margin-top: 4mm; padding-top: 3mm; display: flex; justify-content: space-between; align-items: center;
+    font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--tinta-3);
+    border-top: 1px solid var(--linea);
+  }
+  .pg-foot .dot { color: var(--rojo); }
+</style>
+</head>
+<body>
+
+  <!-- PORTADA -->
+  <section class="page cover">
+    <div class="cover-top">
+      <div class="crest">CSD<br>1925</div>
+      <div class="cover-org">Club Social y Deportivo Colo-Colo · Área de Análisis</div>
+    </div>
+    <div class="cover-mid">
+      <h1>ColoColo<br>Football<br><span>Center</span></h1>
+      <p class="cover-sub">Plataforma de análisis de rendimiento, scouting y gestión deportiva. Recorrido visual por cada módulo, con vista superior e inferior de cada pantalla.</p>
+      <div class="cover-rule"></div>
+      <div class="cover-meta">
+        <div><span>Temporada</span><strong>2026</strong></div>
+        <div><span>Módulos</span><strong>16 secciones</strong></div>
+        <div><span>Fuentes</span><strong>Wyscout · Sofascore</strong></div>
+      </div>
+    </div>
+    <div class="cover-foot">Documento de presentación · Mockups por sección · Junio 2026<br><span style="color:#fff;font-weight:600;letter-spacing:0.04em;">Preparado por Felipe Ormazabal</span></div>
+  </section>
+
+  <!-- Las páginas de sección se inyectan aquí -->
+  <div id="secciones"></div>
+
+  <script>
+    const SECCIONES = [
+      { grupo: 'Equipo', desc: 'Visión del primer equipo: estado deportivo, calendario y rendimiento colectivo con datos Wyscout y la tabla en vivo de Sofascore.' },
+      { badge: 'IN', kicker: 'Equipo', titulo: 'Inicio',
+        texto: 'Panel de entrada con el pulso del equipo: posición en la tabla, puntos, diferencia de gol y forma reciente, junto al próximo partido, los últimos resultados, el muro de avisos del cuerpo técnico y las tareas y cumpleaños del plantel.',
+        feats: ['Muro de <b>avisos</b>', 'Tareas pendientes (admin)', 'Próximos <b>cumpleaños</b>', 'Próximo partido y resultados'] },
+      { badge: 'CA', kicker: 'Equipo', titulo: 'Calendario',
+        texto: 'Tabla de posiciones de la Liga de Primera tomada de Sofascore, con el fixture completo, resultados y la forma de los últimos cinco partidos de cada club.',
+        feats: ['Tabla <b>en vivo</b> / instantánea', 'Fixture y resultados', 'Forma últimos 5'] },
+      { badge: 'RT', kicker: 'Equipo', titulo: 'Resumen de Temporada',
+        texto: 'Radar de rendimiento de Colo-Colo contrastado con el promedio de los adversarios sobre las métricas clave normalizadas por 90 minutos, más el detalle del plantel: goleadores, asistencias, minutos y tarjetas.',
+        feats: ['Radar <b>vs adversarios</b>', 'Métricas Wyscout', 'Goleadores y asistencias', 'Minutos y tarjetas'] },
+      { badge: 'PP', kicker: 'Equipo', titulo: 'PPDA',
+        texto: 'Intensidad de la presión defensiva (pases permitidos por acción defensiva) y su evolución partido a partido, para leer cuándo el equipo presiona más alto y cómo se compara con cada rival.',
+        feats: ['Evolución por fecha', 'PPDA propio y rival', 'Lectura de presión'] },
+      { badge: 'XG', kicker: 'Equipo', titulo: 'Tiros y xG',
+        texto: 'Evolución de los goles esperados (xG) y los tiros a favor y en contra, para evaluar la generación y concesión de ocasiones a lo largo de la temporada, partido a partido.',
+        feats: ['xG a favor / en contra', 'Tiros y tiros al arco', 'Tendencia por partido'] },
+      { badge: 'RP', kicker: 'Equipo', titulo: 'Reporte Post-Partido',
+        texto: 'Informe por partido con el shotmap real de Sofascore, las métricas del encuentro y un mapa de acciones individual para cada jugador, filtrable por tipo de acción y con los minutos disputados en ese partido.',
+        feats: ['<b>Shotmap</b> real por partido', 'Métricas del encuentro', 'Acciones por jugador', 'Filtro por tipo'] },
+
+      { grupo: 'Análisis comparativo', desc: 'Comparar, rankear y ubicar a equipos y jugadores en el contexto de la liga, más la pizarra táctica para preparar cada partido.' },
+      { badge: 'CE', kicker: 'Análisis comparativo', titulo: 'Comparación de Equipos',
+        texto: 'Cara a cara métrica a métrica entre dos equipos, con radar y el detalle de partidos jugados. Los valores se muestran por 90 minutos y los rivales reflejan sus enfrentamientos ante Colo-Colo.',
+        feats: ['Cara a cara por 90′', 'Radar comparativo', 'Partidos jugados'] },
+      { badge: 'RJ', kicker: 'Análisis comparativo', titulo: 'Ranking de Jugadores',
+        texto: 'Tabla ordenable por cualquier métrica con el escudo del club de cada jugador y filtros, para encontrar rápidamente a los mejores en cada faceta del juego.',
+        feats: ['Orden por métrica', 'Escudo del club', 'Filtros'] },
+      { badge: 'DJ', kicker: 'Análisis comparativo', titulo: 'Dispersión · Jugadores',
+        texto: 'Gráfico de dispersión que cruza dos métricas usando el escudo del equipo como punto, con filtros por minutos, edad, posición y equipo para aislar perfiles concretos.',
+        feats: ['Escudos como puntos', 'Filtros: <b>min, edad, pos, equipo</b>', 'Dos métricas a elección'] },
+      { badge: 'CG', kicker: 'Análisis comparativo', titulo: 'Campograma',
+        texto: 'Pizarra táctica con arrastrar y soltar: arma el once, intercambia jugadores, define esquema propio y rival con su banca, y obtén recomendaciones tácticas. Exporta una imagen profesional en JPG.',
+        feats: ['Drag & drop del once', 'Esquema propio y rival', 'Recomendaciones', '<b>Export JPG</b>'] },
+
+      { grupo: 'Scouting de jugadores', desc: 'Detección y seguimiento de objetivos de mercado, con informes, fichas externas y la gestión de jugadores ofrecidos y para ofrecer.' },
+      { badge: 'IS', kicker: 'Scouting de jugadores', titulo: 'Informes de Scouting',
+        texto: 'Fichas de observación con calificación por estrellas, datos del jugador y ficha de Transfermarkt (foto, escudo y liga), más notas multiusuario con registro de autor y selección de país, liga y equipo.',
+        feats: ['Rating por estrellas', 'Ficha <b>Transfermarkt</b>', 'Notas multiusuario', 'País · liga · equipo'] },
+      { badge: 'JO', kicker: 'Scouting de jugadores', titulo: 'Jugadores ofrecidos',
+        texto: 'Mercado entrante con los jugadores que ofrecen al club, separados por transferencia o cesión, con datos del agente (ficha emergente), informes y enlaces de video.',
+        feats: ['Transferencia / cesión', 'Ficha del <b>agente</b>', 'Informes y videos'] },
+
+      { grupo: 'Plantel y administración', desc: 'Gestión del plantel profesional, red de captación a nivel nacional y administración de la plataforma y sus usuarios.' },
+      { badge: 'GJ', kicker: 'Plantel', titulo: 'Gestión de Jugadores',
+        texto: 'Plantel profesional con estado de contrato (alerta de vencimiento), lesiones, cesiones, etiqueta de extranjero, valor de mercado, cláusula y representante con ficha de contacto.',
+        feats: ['Contratos y <b>alertas</b>', 'Valor / cláusula', 'Representantes', 'Edición por rol'] },
+      { badge: 'CP', kicker: 'Plantel', titulo: 'Captación',
+        texto: 'Mapa de Chile con mapa de calor de cobertura por región y el detalle de cada escuela oficial: encargados, contacto, categorías y jugadores destacados, más un resumen nacional de la red.',
+        feats: ['<b>Heatmap</b> por región', 'Escuelas y encargados', 'Jugadores destacados', 'Resumen nacional'] },
+      { badge: 'CF', kicker: 'Administración', titulo: 'Configuración',
+        texto: 'Carga de los datos de la temporada 2026 (estadísticas Wyscout por equipo y de jugadores), catálogo de ligas y torneos por país actualizable por regiones, y shotmaps por partido.',
+        feats: ['Carga de datos <b>2026</b>', 'Catálogo de ligas', 'Shotmaps'] },
+      { badge: 'GU', kicker: 'Administración', titulo: 'Gestión de Usuarios',
+        texto: 'Administración de cuentas: asignación de roles (administrador, editor, visita), contraseñas y permisos de acceso por página para cada usuario de la plataforma.',
+        feats: ['Roles y contraseñas', 'Permisos por página', 'Cuenta principal'] }
+    ];
+
+    const cont = document.getElementById('secciones');
+    const totalGrupos = SECCIONES.filter(s => s.grupo).length;
+    let grupoIdx = 0, k = 0;
+    const pad2 = n => String(n).padStart(2, '0');
+
+    SECCIONES.forEach(s => {
+      if (s.grupo) {
+        grupoIdx++;
+        const g = document.createElement('section');
+        g.className = 'page group';
+        g.innerHTML =
+          '<div class="kicker">Sección ' + grupoIdx + ' de ' + totalGrupos + '</div>' +
+          '<h2>' + s.grupo + '</h2>' +
+          '<p>' + s.desc + '</p>' +
+          '<div class="gcount">Club Social y Deportivo Colo-Colo · Felipe Ormazabal</div>' +
+          '<div class="gnum">' + pad2(grupoIdx) + '</div>';
+        cont.appendChild(g);
+        return;
+      }
+      k++;
+      const imgT = 'screenshots/es/' + pad2(2 * k - 1) + '-v.jpg';
+      const imgB = 'screenshots/es/' + pad2(2 * k) + '-v.jpg';
+      const laptop = img =>
+        '<div class="mbp-screen"><div class="mbp-notch"></div>' +
+          '<div class="mbp-view"><img src="' + img + '" alt="' + s.titulo + '"></div>' +
+        '</div>';
+      const p = document.createElement('section');
+      p.className = 'page sec';
+      p.innerHTML =
+        '<div class="sec-head">' +
+          '<div class="sec-badge">' + s.badge + '</div>' +
+          '<div class="meta"><div class="kicker">' + s.kicker + '</div><h3>' + s.titulo + '</h3></div>' +
+          '<div class="secno"><b>' + pad2(k) + '</b> / 16</div>' +
+        '</div>' +
+        '<div class="sec-rule"></div>' +
+        '<div class="devices">' +
+          '<div class="dev-wrap">' +
+            '<div class="dev-cap"><span class="ci">1</span> Vista superior <span class="cline"></span></div>' +
+            laptop(imgT) +
+          '</div>' +
+          '<div class="scroll-ind"><span class="ch">&#9662;</span><span class="ch">&#9662;</span></div>' +
+          '<div class="dev-wrap">' +
+            '<div class="dev-cap"><span class="ci">2</span> Vista inferior · scroll <span class="cline"></span></div>' +
+            laptop(imgB) +
+          '</div>' +
+        '</div>' +
+        '<div class="sec-desc">' +
+          '<p>' + s.texto + '</p>' +
+          '<div class="sec-feats">' + s.feats.map(f => '<span class="chip">' + f + '</span>').join('') + '</div>' +
+          '<div class="pg-foot"><span>ColoColo Football Center · Felipe Ormazabal</span><span class="dot">&#9679;</span><span>' + s.titulo + ' · ' + pad2(k) + ' / 16</span></div>' +
+        '</div>';
+      cont.appendChild(p);
+    });
+  </script>
+<script>
+(async () => {
+  if (!document.title || !document.title.trim()) document.title = "Mockups Plataforma";
+  // Prepend so page-supplied @page / break rules (deck-stage's margin:0,
+  // author CSS) keep source-order precedence over the baseline.
+  const baseCss = document.createElement('style');
+  baseCss.textContent = "@media print {\n  figure, table { break-inside: avoid; }\n  *, *::before, *::after {\n    print-color-adjust: exact; -webkit-print-color-adjust: exact;\n    backdrop-filter: none !important; -webkit-backdrop-filter: none !important;\n    animation-delay: -99s !important; animation-duration: .001s !important;\n    animation-iteration-count: 1 !important; animation-fill-mode: both !important;\n    animation-play-state: running !important; transition-duration: 0s !important;\n  }\n}";
+  document.head.prepend(baseCss);
+  if (document.readyState === 'loading') {
+    await new Promise((r) => document.addEventListener('DOMContentLoaded', r, { once: true }));
+  }
+  let ds = document.querySelector('deck-stage');
+  // whenDefined never resolves when nothing registers the element, so only
+  // await it when a <deck-stage> tag exists (and race a timeout regardless).
+  if (ds && !customElements.get('deck-stage')) {
+    try {
+      await Promise.race([
+        customElements.whenDefined('deck-stage'),
+        new Promise((r) => setTimeout(r, 3000)),
+      ]);
+    } catch (e) {}
+    ds = document.querySelector('deck-stage');
+  }
+  // dc-runtime assigns window.DCLogic at init and mounts into #dc-root on
+  // DOMContentLoaded; settle on that subtree so React has rendered before
+  // print(). Non-DC pages fall through to weighing body.
+  const isDc = !ds && 'DCLogic' in window;
+  const settleRoot = ds || (isDc ? document.getElementById('dc-root') : null) || document.body;
+  if (settleRoot) {
+    // Weigh only content children — skip script/style/template so inline
+    // Babel/CSS doesn't register as stable "content" before the framework
+    // has mounted anything.
+    const MEDIA = 'img,svg,canvas,video,picture,iframe,embed,object';
+    const weigh = () => {
+      let text = 0, media = 0;
+      for (const c of settleRoot.children) {
+        const t = c.tagName;
+        if (t === 'SCRIPT' || t === 'STYLE' || t === 'TEMPLATE') continue;
+        text += (c.textContent || '').trim().length;
+        media += c.querySelectorAll(MEDIA).length + (c.matches(MEDIA) ? 1 : 0);
+      }
+      return text + media * 100;
+    };
+    // "Non-zero and stable" alone is not sufficient to mean rendered: generic
+    // body can carry a static shell while async main content is pending, and
+    // #dc-root can carry the root DC's static text while child refs are still
+    // .sc-placeholder boxes. Gate generic on readyState 'complete', and never
+    // accept stability while a dc-runtime placeholder is present.
+    const isGeneric = settleRoot === document.body;
+    const deadline = Date.now() + 15000;
+    let last = -1, stable = 0;
+    while (Date.now() < deadline) {
+      const n = weigh();
+      const ready =
+        (!isGeneric || document.readyState === 'complete') &&
+        !settleRoot.querySelector('.sc-placeholder');
+      if (n > 0 && n === last && ready) { if (++stable >= 2) break; } else { stable = 0; }
+      last = n;
+      await new Promise((r) => setTimeout(r, 250));
+    }
+  }
+  // Project support.js may predate runtime default-seeding; push via bridge.
+  if (isDc && window.__dcSetProps && window.__dcRootName) {
+    try {
+      const dpEl = document.querySelector('script[data-dc-script]');
+      const meta = JSON.parse((dpEl && dpEl.getAttribute('data-props')) || '{}');
+      const bag = {};
+      for (const k in meta)
+        if (k[0] !== '$' && meta[k] && meta[k].default !== undefined)
+          bag[k] = meta[k].default;
+      if (Object.keys(bag).length) {
+        window.__dcSetProps(window.__dcRootName(), bag);
+        await new Promise((r) => setTimeout(r, 50));
+      }
+    } catch (e) {}
+  }
+  // Reveal content gated on scroll or visibility before printing. Lazy <img>,
+  // IntersectionObserver fade-ins, and collapsed <details> don't render while
+  // off-screen, so a long page would print with them blank or closed. Open
+  // every <details>, force native-lazy images eager, and scroll the document
+  // through its full height to trip lazy-load + IO; then wait (bounded) for the
+  // newly-triggered images. Inert for deck-stage (slides aren't scroll-gated).
+  try {
+    for (const d of document.querySelectorAll('details')) d.open = true;
+    for (const img of document.querySelectorAll('img[loading="lazy"]'))
+      img.loading = 'eager';
+    const scroller = document.scrollingElement || document.documentElement;
+    const full = Math.max(scroller.scrollHeight, document.body.scrollHeight);
+    const step = window.innerHeight || 800;
+    for (let y = 0; y <= full; y += step) {
+      window.scrollTo(0, y);
+      await new Promise((r) => requestAnimationFrame(r));
+    }
+    window.scrollTo(0, 0);
+    await Promise.race([
+      Promise.all(
+        [...document.images].map((img) =>
+          img.complete
+            ? null
+            : new Promise((res) => {
+                img.addEventListener('load', res, { once: true });
+                img.addEventListener('error', res, { once: true });
+              })
+        )
+      ),
+      new Promise((r) => setTimeout(r, 4000)),
+    ]);
+  } catch (e) {}
+  try { await document.fonts.ready; } catch (e) {}
+  // Jump every animation to its end state so print() never captures a slide
+  // mid-entrance. Ordering matters: the 0s-transition style must be live
+  // BEFORE data-deck-active is set so attribute-keyed transitions don't
+  // start a (now-0s) run from the pre-active base.
+  const st = document.createElement('style');
+  st.textContent = '*,*::before,*::after{animation-delay:-99s !important;animation-duration:.001s !important;animation-iteration-count:1 !important;animation-fill-mode:both !important;animation-play-state:running !important;transition-duration:0s !important}';
+  document.head.appendChild(st);
+  for (const d of document.querySelectorAll('deck-stage')) {
+    for (const c of d.children) {
+      const t = c.tagName;
+      if (t === 'SCRIPT' || t === 'STYLE' || t === 'TEMPLATE') continue;
+      c.setAttribute('data-deck-active', '');
+    }
+  }
+  // Re-append deck-stage's @page last so no author @page can add a margin and
+  // spill each full-bleed slide onto two sheets. Backstop for old copies.
+  if (ds) {
+    let pg = document.getElementById('deck-stage-print-page');
+    if (!pg) {
+      pg = document.createElement('style');
+      pg.textContent = '@page{size:' + (+ds.getAttribute('width') || 1920) +
+        'px ' + (+ds.getAttribute('height') || 1080) + 'px;margin:0}';
+    }
+    document.body.appendChild(pg);
+  }
+  try {
+    const sweep = () => {
+      for (const a of document.getAnimations()) {
+        try { a.finish(); } catch (e) {
+          try { a.currentTime = (a.effect && a.effect.getComputedTiming().duration) || 0; a.pause(); } catch (e2) {}
+        }
+      }
+    };
+    sweep();
+    await new Promise((r) => requestAnimationFrame(r));
+    sweep();
+    await new Promise((r) => requestAnimationFrame(r));
+  } catch (e) {}
+  // Size the PDF page to the rendered design unless the file opted into
+  // standard paper via @page{size:letter|A4|…}. Decks own their own @page.
+  // Wrappers (body, …) lose padding+margin so the frame sits at (0,0); the
+  // frame itself loses only margin — its padding is INSIDE the measured
+  // rect and must stay, or content shifts and leaves a gap at bottom/right.
+  var __m = null;
+  try { __m = (() => {
+  var STAMP = true;
+  var docEl = document.documentElement;
+  var doc = { width: docEl.scrollWidth, height: docEl.scrollHeight };
+
+  var ds = document.querySelector('deck-stage');
+  if (ds) {
+    var dw = Number(ds.getAttribute('width')) || 1920;
+    var dh = Number(ds.getAttribute('height')) || 1080;
+    var n = typeof ds.length === 'number' ? ds.length : ds.children.length;
+    var idx = typeof ds.index === 'number' ? ds.index : 0;
+    var frames = [];
+    for (var i = 0; i < n; i++) frames.push({ left: 0, top: 0, width: dw, height: dh });
+    return { kind: 'deck', source: 'declared', doc: doc, frames: frames,
+      authored: frames.map(function(){return{width:true,height:true}}),
+      deck: { width: dw, height: dh, slideCount: n, index: idx },
+      signals: { paperPage: false, pxPage: false } };
+  }
+
+  // Declared kind: a doc-page tag names the kind outright, so no signal
+  // heuristics run (like the deck branch above, signals report false —
+  // they describe inferred classifications only). The tag alone is not
+  // trusted: the element must have upgraded (shadowRoot present), so a
+  // leftover tag whose script was deleted falls through to the heuristics
+  // that handle plain markup.
+  var stageSx = window.scrollX || 0, stageSy = window.scrollY || 0;
+  var dp = document.querySelector('doc-page');
+  if (dp && dp.shadowRoot) {
+    // Crop to the sheet, not the host — the desk around it is screen-only
+    // chrome that must not land in PNG exports.
+    var sheet = dp.shadowRoot.querySelector('.sheet');
+    var sr = (sheet || dp).getBoundingClientRect();
+    return { kind: 'paper-doc', source: 'declared', doc: doc,
+      frames: [{ left: sr.left + stageSx, top: sr.top + stageSy,
+        width: sr.width, height: sr.height }],
+      authored: [{ width: false, height: false }],
+      signals: { paperPage: false, pxPage: false } };
+  }
+  var paperPage = false, pxPage = false;
+  var eachRule = function (fn) {
+    for (var s = 0; s < document.styleSheets.length; s++) {
+      var rs; try { rs = document.styleSheets[s].cssRules; } catch (e) { continue; }
+      for (var r = 0; r < rs.length; r++) {
+        fn(rs[r]);
+        if (rs[r].cssRules) for (var n = 0; n < rs[r].cssRules.length; n++) fn(rs[r].cssRules[n]);
+      }
+    }
+  };
+  eachRule(function (r) {
+    if (r.type !== 6) return;
+    var m = /\bsize\s*:\s*([^;}]+)/i.exec(r.cssText || '');
+    if (!m) return;
+    if (/\b(letter|a[3-5]|legal|ledger)\b/i.test(m[1])) paperPage = true;
+    if (/\d+(?:\.\d+)?px\b/i.test(m[1])) pxPage = true;
+  });
+  var signals = { paperPage: paperPage, pxPage: pxPage };
+
+  var pxVal = function (v) {
+    var m = /^(\d+(?:\.\d+)?)px$/.exec(v || ''); return m ? +m[1] : 0;
+  };
+  var authoredPx = function (el, prop) {
+    if (pxVal(el.style[prop])) return true;
+    var attr = el.getAttribute(prop);
+    if (attr && /^\d+$/.test(attr)) return true;
+    var hit = false;
+    eachRule(function (r) {
+      if (hit || r.type !== 1 || !r.style) return;
+      try { if (el.matches(r.selectorText) && pxVal(r.style[prop])) hit = true; } catch (e) {}
+    });
+    return hit;
+  };
+
+  var el = document.body, rootPxW = false;
+  for (;;) {
+    var kids = [];
+    for (var c = 0; c < el.children.length; c++) {
+      var t = el.children[c].tagName;
+      if (t !== 'SCRIPT' && t !== 'STYLE' && t !== 'TEMPLATE') kids.push(el.children[c]);
+    }
+    if (kids.length !== 1 || !(kids[0] instanceof HTMLElement)) break;
+    if (STAMP) el.setAttribute('data-om-frame-wrap', '');
+    el = kids[0];
+    rootPxW = authoredPx(el, 'width');
+    if (rootPxW) break;
+  }
+  if (!rootPxW) rootPxW = authoredPx(el, 'width');
+
+  // @page{size:letter} alone is a flowing doc; with a px-width root it's a
+  // fixed sheet pretending to be paper — fall through and size to render.
+  if (paperPage && !rootPxW) {
+    return { kind: 'paper-doc', source: 'inferred', doc: doc, signals: signals,
+      frames: [{ left: 0, top: 0, width: doc.width, height: doc.height }],
+      authored: [{ width: false, height: false }] };
+  }
+
+  var sx = window.scrollX || 0, sy = window.scrollY || 0;
+  var rectOf = function (e) {
+    var r = e.getBoundingClientRect();
+    var oy; try { oy = getComputedStyle(e).overflowY; } catch (err) {}
+    var h = oy === 'visible' ? Math.max(r.height, e.scrollHeight || 0) : r.height;
+    return { left: r.left + sx, top: r.top + sy, width: r.width, height: h };
+  };
+
+  // Multi-frame: ≥2 visible non-fixed children, each with authored px width
+  // AND height, all within ±2px of each other. Off unless the page opts in
+  // via data-om-multi-frame on the stop element — guards against card grids
+  // and pricing tables that match the geometry but aren't separate canvases.
+  if (el.hasAttribute('data-om-multi-frame')) {
+    var cands = [];
+    for (var k = 0; k < el.children.length; k++) {
+      var ch = el.children[k];
+      var cs; try { cs = getComputedStyle(ch); } catch (e) { continue; }
+      if (cs.display === 'none' || cs.visibility === 'hidden' || cs.position === 'fixed') continue;
+      var rc = rectOf(ch);
+      if (rc.width < 2 || rc.height < 2) continue;
+      if (!authoredPx(ch, 'width') || !authoredPx(ch, 'height')) continue;
+      cands.push(rc);
+    }
+    if (cands.length >= 2) {
+      var w0 = cands[0].width, h0 = cands[0].height, ok = true;
+      for (var q = 1; q < cands.length; q++)
+        if (Math.abs(cands[q].width - w0) > 2 || Math.abs(cands[q].height - h0) > 2) ok = false;
+      if (ok) return { kind: 'multi-frame', source: 'inferred', doc: doc, signals: signals,
+        frames: cands, authored: cands.map(function(){return{width:true,height:true}}) };
+    }
+  }
+
+  if (STAMP) el.setAttribute('data-om-frame', '');
+  return { kind: 'single-canvas', source: 'inferred', doc: doc, signals: signals,
+    frames: [rectOf(el)],
+    authored: [{ width: rootPxW, height: authoredPx(el, 'height') }] };
+})(); } catch (e) {}
+  var frame = null;
+  if (__m && __m.kind === 'single-canvas') {
+    var f = __m.frames && __m.frames[0];
+    if (f && f.width >= 200 && f.height >= 200) {
+      frame = f;
+      var fst = document.createElement('style');
+      fst.textContent = '@media print{@page{size:' + Math.ceil(f.width) + 'px ' +
+        Math.ceil(f.height) + 'px;margin:0}' +
+        'html,body,[data-om-frame-wrap]{padding:0!important;margin:0!important;background:none!important}' +
+        '[data-om-frame]{margin:0!important}}';
+      document.body.appendChild(fst);
+    }
+  }
+  // Relax break-inside on oversized elements. An element taller than a
+  // printable page can't honor break-inside: avoid — browsers either overflow
+  // it or push it whole to the next page, leaving a blank gap, then break it
+  // anyway at an arbitrary point. After the final layout (content revealed,
+  // animations jumped), find elements taller than a page that still compute
+  // break-inside: avoid and reset them to auto, so the browser breaks them at
+  // their children's boundaries instead (children keep their own avoid). PAGE_PX
+  // is a conservative portrait estimate at 96 CSS px/in — Letter/A4 usable
+  // height minus our 0.5in margins — so only clearly-oversized elements are
+  // touched and under-page elements still stay whole. Skipped for decks (slides
+  // are sized to the page) and for fixed-size canvases (frame set, or an author
+  // px-based @page) — runs as before for flowing docs on letter/A4.
+  try {
+    if (!ds && !frame && !(__m && __m.signals && __m.signals.pxPage)) {
+      const PAGE_PX = 1024;
+      // Our print defaults add a real @page margin only when the source has
+      // no @page of its own; computed style can't tell us (it reports screen
+      // media), so read the injected rule directly.
+      const defaults = document.querySelector('style[data-omelette-print-defaults]');
+      const pageInset = /@page\s*\{[^}]*margin/.test(defaults ? defaults.textContent || '' : '');
+      const SEL = 'section,article,figure,table,pre,blockquote,[class~="card" i],[class~="page" i],[class~="sheet" i]';
+      for (const el of document.body.querySelectorAll(SEL)) {
+        if (el instanceof HTMLElement && el.offsetHeight > PAGE_PX) {
+          el.setAttribute('data-om-oversized', '');
+          // Fake-paged docs simulate sheets with over-tall break-after:page
+          // boxes; honoring the break spills half-blank pages and ends a
+          // colored box mid-sheet. Flow them, and (only when we own the page
+          // inset) drop the redundant padding/background via the rule below.
+          const cs = getComputedStyle(el);
+          if (cs.breakAfter === 'page' || cs.pageBreakAfter === 'always') {
+            el.setAttribute('data-om-fakepage', '');
+          }
+        }
+      }
+      const ost = document.createElement('style');
+      ost.textContent = '@media print{' +
+        '[data-om-oversized]{break-inside:auto !important;page-break-inside:auto !important}' +
+        '[data-om-fakepage]{break-after:auto !important;page-break-after:auto !important}' +
+        (pageInset ? '[data-om-fakepage]{padding:0 !important;background:none !important}' : '') +
+        '}';
+      document.head.appendChild(ost);
+    }
+  } catch (e) {}
+  // macOS Preview renders Skia-PDF Luminosity soft-masks as opaque grey boxes;
+  // swap the CSS that triggers them for Preview-safe forms.
+  try {
+    for (const el of document.body.querySelectorAll('*')) {
+      const cs = getComputedStyle(el);
+
+      if (cs.boxShadow !== 'none' && cs.filter === 'none') {
+        const outs = [], kept = [];
+        for (const s of cs.boxShadow.split(/,(?![^(]*[)])/)) {
+          const t = s.trim();
+          const m = t.match(/^(rgba?[(][^)]+[)]) (-?[0-9.]+px) (-?[0-9.]+px) ([0-9.]+px) -?[0-9.]+px$/);
+          if (m && parseFloat(m[4]) > 0) outs.push('drop-shadow(' + m[2] + ' ' + m[3] + ' ' + m[4] + ' ' + m[1] + ')');
+          else kept.push(t);
+        }
+        if (outs.length) {
+          el.style.setProperty('filter', outs.join(' '), 'important');
+          el.style.setProperty('box-shadow', kept.join(', ') || 'none', 'important');
+        }
+      }
+
+      const mask = cs.maskImage && cs.maskImage !== 'none' ? cs.maskImage : cs.webkitMaskImage;
+      if (mask && mask !== 'none' && cs.filter === 'none') el.style.setProperty('filter', 'opacity(1)', 'important');
+    }
+  } catch (e) {}
+  setTimeout(() => { try { window.print(); } catch (e) {} }, 200);
+})();
+</script>
+</body>
+</html>

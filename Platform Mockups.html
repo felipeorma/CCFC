@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ColoColo Football Center · Mockups by section</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --negro: #0b0b0d;
+    --rojo: #be1622;
+    --tinta: #1a1c20;
+    --tinta-2: #5b626d;
+    --tinta-3: #9aa1ac;
+    --linea: #e4e6ea;
+    --crema: #f6f7f8;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body {
+    font-family: 'Barlow', 'Helvetica Neue', Arial, sans-serif;
+    color: var(--tinta);
+    background: #555;
+  }
+  .page {
+    width: 210mm;
+    height: 297mm;
+    margin: 0 auto;
+    background: #fff;
+    position: relative;
+    padding: 14mm 15mm;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  @media screen {
+    .page { margin: 10mm auto; box-shadow: 0 6px 30px rgba(0,0,0,0.35); }
+  }
+  @page { size: A4 portrait; margin: 0; }
+  @media print {
+    body { background: #fff; }
+    .page { margin: 0; box-shadow: none; page-break-after: always; }
+    .page:last-child { page-break-after: auto; }
+  }
+
+  h1, h2, h3, .kicker, .num { font-family: 'Barlow Condensed', 'Barlow', sans-serif; }
+
+  /* ---------- Cover ---------- */
+  .cover { background: var(--negro); color: #fff; justify-content: space-between; padding: 24mm 20mm; }
+  .cover::after {
+    content: ''; position: absolute; right: -120px; top: -120px;
+    width: 460px; height: 460px; border-radius: 50%;
+    border: 60px solid rgba(190,22,34,0.13);
+  }
+  .cover-top { display: flex; align-items: center; gap: 14px; position: relative; z-index: 1; }
+  .crest {
+    width: 64px; height: 64px; border-radius: 50%;
+    background: #fff; color: var(--negro);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 13px; line-height: 0.9; text-align: center;
+    border: 3px solid var(--rojo);
+  }
+  .cover-org { font-size: 13px; letter-spacing: 0.32em; text-transform: uppercase; color: var(--tinta-3); }
+  .cover-mid { position: relative; z-index: 1; }
+  .cover-mid h1 {
+    font-weight: 800; font-size: 88px; line-height: 0.92; letter-spacing: -0.01em; text-transform: uppercase;
+  }
+  .cover-mid h1 span { color: var(--rojo); }
+  .cover-sub { margin-top: 18px; font-size: 19px; color: #c9cdd4; max-width: 60ch; line-height: 1.5; }
+  .cover-rule { height: 4px; width: 120px; background: var(--rojo); margin: 26px 0; }
+  .cover-meta { display: flex; gap: 40px; flex-wrap: wrap; }
+  .cover-meta div span { display: block; font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--tinta-3); margin-bottom: 5px; }
+  .cover-meta div strong { font-size: 19px; font-weight: 600; }
+  .cover-foot { font-size: 13px; color: var(--tinta-3); letter-spacing: 0.04em; position: relative; z-index: 1; }
+
+  /* ---------- Group divider ---------- */
+  .group { color: #fff; background: var(--negro); justify-content: center; }
+  .group .kicker { font-size: 15px; letter-spacing: 0.3em; text-transform: uppercase; color: var(--rojo); margin-bottom: 12px; }
+  .group h2 { font-size: 64px; font-weight: 800; text-transform: uppercase; line-height: 0.95; }
+  .group p { margin-top: 16px; font-size: 17px; color: #c9cdd4; max-width: 54ch; line-height: 1.55; }
+  .group .gnum { position: absolute; right: 18mm; bottom: 16mm; font-family: 'Barlow Condensed'; font-size: 150px; font-weight: 800; color: rgba(255,255,255,0.06); line-height: 1; }
+  .group .gcount { position: absolute; left: 20mm; bottom: 18mm; font-size: 13px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--tinta-3); }
+
+  /* ---------- Section with mockup ---------- */
+  .sec { padding-top: 12mm; }
+  .sec-head { display: flex; align-items: center; gap: 13px; }
+  .sec-badge {
+    flex: none; width: 44px; height: 44px; border-radius: 12px; background: var(--negro); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Barlow Condensed'; font-weight: 700; font-size: 19px;
+    border-bottom: 3px solid var(--rojo);
+  }
+  .sec-head .meta { flex: 1; }
+  .sec-head .meta .kicker { font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--tinta-3); }
+  .sec-head .meta h3 { font-size: 31px; font-weight: 700; line-height: 1.0; margin-top: 1px; }
+  .sec-head .secno { font-family: 'Barlow Condensed'; font-weight: 800; font-size: 34px; color: var(--linea); }
+  .sec-head .secno b { color: var(--rojo); font-weight: 800; }
+  .sec-rule { height: 2px; background: var(--linea); margin: 4mm 0 0; position: relative; }
+  .sec-rule::before { content: ''; position: absolute; left: 0; top: 0; height: 2px; width: 56px; background: var(--rojo); }
+
+  /* two stacked devices */
+  .devices { display: flex; flex-direction: column; align-items: center; gap: 2.5mm; margin-top: 5mm; }
+  .dev-wrap { width: 142mm; }
+  .dev-cap {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 4px;
+    font-size: 10.5px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--tinta-2); font-weight: 600;
+  }
+  .dev-cap .ci {
+    width: 17px; height: 17px; border-radius: 5px; background: var(--negro); color: #fff;
+    display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700;
+  }
+  .dev-cap .cline { flex: 1; height: 1px; background: var(--linea); }
+
+  .mbp-screen {
+    position: relative;
+    background: #0a0a0c;
+    border: 2px solid #2f2f35;
+    border-radius: 14px;
+    padding: 8px 8px 9px;
+    box-shadow: inset 0 0 0 1.5px #000, 0 8px 20px rgba(0,0,0,0.20);
+  }
+  .mbp-notch {
+    position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+    width: 28%; max-width: 130px; height: 13px; background: #0a0a0c;
+    border-radius: 0 0 8px 8px; z-index: 3;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .mbp-notch::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: #1c1c22; box-shadow: inset 0 0 0 1.2px #2c2c34; }
+  .mbp-view { border-radius: 6px; overflow: hidden; background: #fff; border: 1px solid #000; }
+  .mbp-view img { width: 100%; display: block; }
+
+  .scroll-ind {
+    display: flex; flex-direction: column; align-items: center; gap: 1px;
+    color: var(--tinta-3);
+  }
+  .scroll-ind .ch { font-size: 13px; line-height: 0.7; }
+  .scroll-ind .ch:first-child { color: var(--rojo); }
+
+  .sec-desc { margin-top: auto; padding-top: 5mm; }
+  .sec-desc p { font-size: 14px; line-height: 1.55; color: var(--tinta); max-width: 86ch; }
+  .sec-feats { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 3mm; }
+  .chip {
+    font-size: 12px; font-weight: 600; color: var(--tinta-2);
+    background: var(--crema); border: 1px solid var(--linea); border-radius: 999px;
+    padding: 4px 11px;
+  }
+  .chip b { color: var(--rojo); font-weight: 700; }
+
+  .pg-foot {
+    margin-top: 4mm; padding-top: 3mm; display: flex; justify-content: space-between; align-items: center;
+    font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--tinta-3);
+    border-top: 1px solid var(--linea);
+  }
+  .pg-foot .dot { color: var(--rojo); }
+</style>
+</head>
+<body>
+
+  <!-- COVER -->
+  <section class="page cover">
+    <div class="cover-top">
+      <div class="crest">CSD<br>1925</div>
+      <div class="cover-org">Club Social y Deportivo Colo-Colo · Analytics Department</div>
+    </div>
+    <div class="cover-mid">
+      <h1>ColoColo<br>Football<br><span>Center</span></h1>
+      <p class="cover-sub">Performance analysis, scouting and sports-management platform. A visual walkthrough of every module, with a top and bottom view of each screen.</p>
+      <div class="cover-rule"></div>
+      <div class="cover-meta">
+        <div><span>Season</span><strong>2026</strong></div>
+        <div><span>Modules</span><strong>16 sections</strong></div>
+        <div><span>Sources</span><strong>Wyscout · Sofascore</strong></div>
+      </div>
+    </div>
+    <div class="cover-foot">Presentation document · Mockups by section · June 2026<br><span style="color:#fff;font-weight:600;letter-spacing:0.04em;">Prepared by Felipe Ormazabal</span></div>
+  </section>
+
+  <!-- Section pages are injected here -->
+  <div id="secciones"></div>
+
+  <script>
+    const SECCIONES = [
+      { grupo: 'Team', desc: 'A view of the first team: competitive status, schedule and collective performance with Wyscout data and the live Sofascore table.' },
+      { badge: 'HM', kicker: 'Team', titulo: 'Home',
+        texto: 'Landing dashboard with the pulse of the team: league position, points, goal difference and recent form, alongside the next match, latest results, the coaching staff notice board and the squad\u2019s tasks and birthdays.',
+        feats: ['<b>Notice</b> board', 'Pending tasks (admin)', 'Upcoming <b>birthdays</b>', 'Next match and results'] },
+      { badge: 'SC', kicker: 'Team', titulo: 'Schedule',
+        texto: 'Primera Divisi\u00f3n standings pulled from Sofascore, with the full fixture, results and the last-five-match form for every club.',
+        feats: ['<b>Live</b> / snapshot table', 'Fixture and results', 'Last-5 form'] },
+      { badge: 'SS', kicker: 'Team', titulo: 'Season Summary',
+        texto: 'Colo-Colo performance radar contrasted with the opponents\u2019 average across the key metrics normalized per 90 minutes, plus squad detail: scorers, assists, minutes and cards.',
+        feats: ['Radar <b>vs opponents</b>', 'Wyscout metrics', 'Scorers and assists', 'Minutes and cards'] },
+      { badge: 'PP', kicker: 'Team', titulo: 'PPDA',
+        texto: 'Defensive-pressing intensity (passes allowed per defensive action) and its match-by-match trend, to read when the team presses higher and how it compares against each opponent.',
+        feats: ['Round-by-round trend', 'Own and opponent PPDA', 'Pressing read'] },
+      { badge: 'XG', kicker: 'Team', titulo: 'Shots & xG',
+        texto: 'Evolution of expected goals (xG) and shots for and against, to assess chance creation and concession across the season, match by match.',
+        feats: ['xG for / against', 'Shots and shots on target', 'Per-match trend'] },
+      { badge: 'PM', kicker: 'Team', titulo: 'Post-Match Report',
+        texto: 'Per-match report with the real Sofascore shotmap, the match metrics and an individual action map for each player, filterable by action type and reflecting the minutes played in that match.',
+        feats: ['Real <b>shotmap</b> per match', 'Match metrics', 'Player actions', 'Filter by type'] },
+
+      { grupo: 'Comparative analysis', desc: 'Compare, rank and position teams and players within the league context, plus the tactics board to prepare every match.' },
+      { badge: 'TC', kicker: 'Comparative analysis', titulo: 'Team Comparison',
+        texto: 'Metric-by-metric head-to-head between two teams, with radar and the detail of matches played. Values are shown per 90 minutes and opponents reflect their fixtures against Colo-Colo.',
+        feats: ['Head-to-head per 90\u2032', 'Comparative radar', 'Matches played'] },
+      { badge: 'PR', kicker: 'Comparative analysis', titulo: 'Player Ranking',
+        texto: 'Table sortable by any metric, with each player\u2019s club crest and filters, to quickly find the best in every facet of the game.',
+        feats: ['Sort by metric', 'Club crest', 'Filters'] },
+      { badge: 'SP', kicker: 'Comparative analysis', titulo: 'Scatter · Players',
+        texto: 'Scatter chart crossing two metrics using the team crest as the point, with filters by minutes, age, position and team to isolate specific profiles.',
+        feats: ['Crests as points', 'Filters: <b>min, age, pos, team</b>', 'Two metrics of choice'] },
+      { badge: 'TB', kicker: 'Comparative analysis', titulo: 'Tactics Board',
+        texto: 'Drag-and-drop tactics board: build the XI, swap players, set your own and the opponent\u2019s formation with its bench, and get tactical recommendations. Export a professional JPG image.',
+        feats: ['Drag & drop XI', 'Own and opponent formation', 'Recommendations', '<b>JPG export</b>'] },
+
+      { grupo: 'Player scouting', desc: 'Detection and tracking of market targets, with reports, external profiles and the management of players offered and to offer.' },
+      { badge: 'SR', kicker: 'Player scouting', titulo: 'Scouting Reports',
+        texto: 'Observation cards with star rating, player data and a Transfermarkt profile (photo, crest and league), plus multi-user notes with author tracking and country, league and team selection.',
+        feats: ['Star rating', '<b>Transfermarkt</b> profile', 'Multi-user notes', 'Country · league · team'] },
+      { badge: 'PO', kicker: 'Player scouting', titulo: 'Players Offered',
+        texto: 'Incoming market with the players offered to the club, split by transfer or loan, with agent data (pop-up card), reports and video links.',
+        feats: ['Transfer / loan', '<b>Agent</b> card', 'Reports and videos'] },
+
+      { grupo: 'Squad and administration', desc: 'Management of the professional squad, the nationwide recruitment network and administration of the platform and its users.' },
+      { badge: 'PM', kicker: 'Squad', titulo: 'Player Management',
+        texto: 'Professional squad with contract status (expiry alert), injuries, loans, foreigner tag, market value, buyout clause and agent with a contact card.',
+        feats: ['Contracts and <b>alerts</b>', 'Value / buyout', 'Agents', 'Role-based editing'] },
+      { badge: 'RC', kicker: 'Squad', titulo: 'Recruitment',
+        texto: 'Map of Chile with a coverage heatmap by region and the detail of each official school: managers, contact, age groups and standout players, plus a national network summary.',
+        feats: ['Region <b>heatmap</b>', 'Schools and managers', 'Standout players', 'National summary'] },
+      { badge: 'ST', kicker: 'Administration', titulo: 'Settings',
+        texto: 'Loading of the 2026 season data (Wyscout team and player statistics), a league & tournament catalog by country updatable by regions, and per-match shotmaps.',
+        feats: ['<b>2026</b> data load', 'League catalog', 'Shotmaps'] },
+      { badge: 'UM', kicker: 'Administration', titulo: 'User Management',
+        texto: 'Account administration: assignment of roles (administrator, editor, viewer), passwords and per-page access permissions for every platform user.',
+        feats: ['Roles and passwords', 'Per-page permissions', 'Main account'] }
+    ];
+
+    const cont = document.getElementById('secciones');
+    const totalGrupos = SECCIONES.filter(s => s.grupo).length;
+    let grupoIdx = 0, k = 0;
+    const pad2 = n => String(n).padStart(2, '0');
+
+    SECCIONES.forEach(s => {
+      if (s.grupo) {
+        grupoIdx++;
+        const g = document.createElement('section');
+        g.className = 'page group';
+        g.innerHTML =
+          '<div class="kicker">Section ' + grupoIdx + ' of ' + totalGrupos + '</div>' +
+          '<h2>' + s.grupo + '</h2>' +
+          '<p>' + s.desc + '</p>' +
+          '<div class="gcount">Club Social y Deportivo Colo-Colo · Felipe Ormazabal</div>' +
+          '<div class="gnum">' + pad2(grupoIdx) + '</div>';
+        cont.appendChild(g);
+        return;
+      }
+      k++;
+      const imgT = 'screenshots/en/' + pad2(2 * k - 1) + '-v.jpg';
+      const imgB = 'screenshots/en/' + pad2(2 * k) + '-v.jpg';
+      const laptop = img =>
+        '<div class="mbp-screen"><div class="mbp-notch"></div>' +
+          '<div class="mbp-view"><img src="' + img + '" alt="' + s.titulo + '"></div>' +
+        '</div>';
+      const p = document.createElement('section');
+      p.className = 'page sec';
+      p.innerHTML =
+        '<div class="sec-head">' +
+          '<div class="sec-badge">' + s.badge + '</div>' +
+          '<div class="meta"><div class="kicker">' + s.kicker + '</div><h3>' + s.titulo + '</h3></div>' +
+          '<div class="secno"><b>' + pad2(k) + '</b> / 16</div>' +
+        '</div>' +
+        '<div class="sec-rule"></div>' +
+        '<div class="devices">' +
+          '<div class="dev-wrap">' +
+            '<div class="dev-cap"><span class="ci">1</span> Top view <span class="cline"></span></div>' +
+            laptop(imgT) +
+          '</div>' +
+          '<div class="scroll-ind"><span class="ch">&#9662;</span><span class="ch">&#9662;</span></div>' +
+          '<div class="dev-wrap">' +
+            '<div class="dev-cap"><span class="ci">2</span> Bottom view · scroll <span class="cline"></span></div>' +
+            laptop(imgB) +
+          '</div>' +
+        '</div>' +
+        '<div class="sec-desc">' +
+          '<p>' + s.texto + '</p>' +
+          '<div class="sec-feats">' + s.feats.map(f => '<span class="chip">' + f + '</span>').join('') + '</div>' +
+          '<div class="pg-foot"><span>ColoColo Football Center · Felipe Ormazabal</span><span class="dot">&#9679;</span><span>' + s.titulo + ' · ' + pad2(k) + ' / 16</span></div>' +
+        '</div>';
+      cont.appendChild(p);
+    });
+  </script>
+</body>
+</html>

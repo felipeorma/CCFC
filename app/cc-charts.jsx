@@ -203,7 +203,10 @@ function CCScatter({ points, xLabel, yLabel, height = 420, highlight, formatX, f
               {p.logo ? (
                 <g opacity={op}>
                   {hot && <circle cx={x(p.x)} cy={y(p.y)} r={r + 3.5} fill="none" stroke="var(--accent)" strokeWidth="1.8"></circle>}
-                  <image href={p.logo} x={x(p.x) - r} y={y(p.y) - r} width={r * 2} height={r * 2} preserveAspectRatio="xMidYMid meet"></image>
+                  {/* foreignObject+img (no <image>): los <img> sí se incrustan al exportar/capturar */}
+                  <foreignObject x={x(p.x) - r} y={y(p.y) - r} width={r * 2} height={r * 2} style={{ pointerEvents: 'none', overflow: 'visible' }}>
+                    <img src={p.logo} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}></img>
+                  </foreignObject>
                   <circle cx={x(p.x)} cy={y(p.y)} r={r + 2} fill="transparent"></circle>
                 </g>
               ) : (

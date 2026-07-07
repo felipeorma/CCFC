@@ -22,11 +22,6 @@ import AdminRoute from './components/AdminRoute';
 import { AppProvider } from './context/AppContext';
 import { AuthProvider } from './context/AuthContext';
 import PrivateRoute from './components/PrivateRoute';
-import Settings from './pages/Settings';
-import UserManagement from './pages/UserManagement';
-import AdminRoute from './components/AdminRoute';
-import { AuthProvider } from './context/AuthContext';
-import PrivateRoute from './components/PrivateRoute';
 
 // Componente interno para trackear page_views
 function GoogleAnalyticsTracker() {

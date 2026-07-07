@@ -1,272 +1,307 @@
 // ============================================================
-// ColoColo Football Center — Mapa de acciones de jugador
-// Replica la lógica del notebook Python (mplsoccer):
-// pases/centros/carreras como flechas, remates/regates/
-// entradas/intercepciones/recuperaciones como marcadores,
-// con leyenda. Las acciones se GENERAN de forma determinista
-// a partir de las estadísticas reales por-90 (Wyscout) + la
-// posición del jugador, ya que la API de eventos de Sofascore
-// no es accesible desde el navegador.
+// ColoColo Football Center - Acciones reales por jugador
+// Fuente: SofaScore /event/{id}/lineups y /rating-breakdown
 // ============================================================
-/* global React */
 
-// ---------- RNG determinista ----------
-function ccAccHash(str) {
-  let h = 2166136261;
-  for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
-  return h >>> 0;
-}
-function ccAccRng(seed) {
-  let a = seed >>> 0;
-  return function () {
-    a |= 0; a = a + 0x6D2B79F5 | 0;
-    let t = Math.imul(a ^ a >>> 15, 1 | a);
-    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
-    return ((t ^ t >>> 14) >>> 0) / 4294967296;
-  };
-}
+(function () {
+  const CACHE_KEY = 'cc_actions_real_v1';
+  const memory = {};
 
-// ---------- Posición base en cancha (opta, ataca a la derecha) ----------
-// x: 0-100 (0 = arco propio, 100 = arco rival) · y: 0-100 (ancho)
-function ccPosBase(posicion) {
-  const p = String(posicion || '').toUpperCase();
-  const lado = p.startsWith('R') ? 78 : p.startsWith('L') ? 22 : 50;
-  if (p.includes('GK')) return { x: 12, y: 50, sx: 6, sy: 10 };
-  if (p.includes('CB') || p === 'RCB3' || p === 'LCB3') return { x: 26, y: p.includes('R') ? 62 : p.includes('L') ? 38 : 50, sx: 9, sy: 14 };
-  if (p.includes('WB')) return { x: 46, y: lado, sx: 14, sy: 10 };
-  if (p === 'RB' || p === 'LB' || p === 'RB5' || p === 'LB5') return { x: 42, y: lado, sx: 14, sy: 10 };
-  if (p.includes('DMF')) return { x: 40, y: p.includes('R') ? 60 : p.includes('L') ? 40 : 50, sx: 12, sy: 14 };
-  if (p.includes('AMF')) return { x: 66, y: 50, sx: 13, sy: 16 };
-  if (p.includes('CMF')) return { x: 52, y: p.includes('R') ? 60 : p.includes('L') ? 40 : 50, sx: 13, sy: 16 };
-  if (p.includes('WF') || p === 'RW' || p === 'LW') return { x: 72, y: lado, sx: 14, sy: 12 };
-  if (p.includes('CF') || p.includes('SS')) return { x: 82, y: 50, sx: 11, sy: 16 };
-  return { x: 50, y: 50, sx: 14, sy: 16 };
-}
+  try {
+    Object.assign(memory, JSON.parse(localStorage.getItem(CACHE_KEY) || '{}'));
+  } catch (e) {}
 
-function ccClampN(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
-
-// ---------- Generador de acciones ----------
-function ccGenerarAcciones(jug, partido, lado) {
-  if (!jug) return [];
-  const rng = ccAccRng(ccAccHash((jug.nombre || '') + '|' + (partido ? partido.j : 0) + '|' + lado));
-  const base = ccPosBase(jug.posicion);
-  const minProm = jug.pj ? jug.min / jug.pj : 70;
-  const f = ccClampN(minProm / 90, 0.25, 1.1);
-
-  const near = (c, s) => ccClampN(c + (rng() - 0.5) * 2 * s, 3, 97);
-  const acc = [];
-
-  const pasesPct = (jug.pasesPct || 75) / 100;
-  const nPases = ccClampN(Math.round((jug.pasesP90 || 20) * f * 0.8), 4, 26);
-  let asignadoAsist = false;
-  for (let i = 0; i < nPases; i++) {
-    const x = near(base.x, base.sx + 6), y = near(base.y, base.sy + 8);
-    const fwd = 6 + rng() * 22;
-    const ex = ccClampN(x + fwd, 3, 99), ey = ccClampN(y + (rng() - 0.5) * 34, 3, 97);
-    const exito = rng() < pasesPct;
-    const largo = fwd > 20 && rng() < 0.35;
-    let tipo = 'pase', color = exito ? 'exito' : 'fallo';
-    if (!asignadoAsist && (jug.asist || 0) > 0 && exito && i > nPases * 0.5 && rng() < 0.4 && ex > 70) {
-      tipo = 'asistencia'; color = 'asist'; asignadoAsist = true;
-    } else if (largo && exito) { tipo = 'paseLargo'; color = 'largo'; }
-    acc.push({ kind: 'arrow', tipo, color, x, y, ex, ey });
+  function save() {
+    try { localStorage.setItem(CACHE_KEY, JSON.stringify(memory)); } catch (e) {}
   }
 
-  const nCentros = ccClampN(Math.round((jug.centrosP90 || 0) * f * 1.6), 0, 6);
-  for (let i = 0; i < nCentros; i++) {
-    const wing = base.y >= 50 ? near(82, 8) : near(18, 8);
-    const x = near(78, 10);
-    const ex = ccClampN(88 + rng() * 8, 80, 99), ey = near(50, 14);
-    acc.push({ kind: 'arrow', tipo: 'centro', color: rng() < 0.42 ? 'centroOk' : 'fallo', curved: true, x, y: wing, ex, ey });
-  }
-
-  const nCarreras = ccClampN(Math.round((jug.carrerasP90 || 0) * f), 0, 6);
-  for (let i = 0; i < nCarreras; i++) {
-    const x = near(base.x, base.sx + 8), y = near(base.y, base.sy + 8);
-    acc.push({ kind: 'arrow', tipo: 'carrera', color: 'carrera', dashed: true, x, y, ex: ccClampN(x + 8 + rng() * 12, 3, 99), ey: ccClampN(y + (rng() - 0.5) * 16, 3, 97) });
-  }
-
-  const esDef = /CB|RB|LB|WB|DMF|GK/.test(String(jug.posicion || '').toUpperCase());
-  if (esDef) {
-    const nDesp = ccClampN(Math.round((jug.accDefP90 || 0) * f * 0.25), 0, 4);
-    for (let i = 0; i < nDesp; i++) {
-      const x = near(22, 12), y = near(base.y, 20);
-      acc.push({ kind: 'arrow', tipo: 'despeje', color: 'despeje', x, y, ex: ccClampN(x + 18 + rng() * 22, 3, 99), ey: near(y, 24) });
+  function fetchCached(key, path) {
+    if (memory[key]) return Promise.resolve(memory[key]);
+    if (typeof window.ccSofaFetch !== 'function') {
+      return Promise.reject(new Error('No está disponible la conexión con SofaScore.'));
     }
+    return window.ccSofaFetch(path).then(data => {
+      if (!data || data.error) throw new Error('SofaScore no entregó datos para este partido.');
+      memory[key] = data;
+      save();
+      return data;
+    });
   }
 
-  const nRegates = ccClampN(Math.round((jug.regatesP90 || 0) * f), 0, 6);
-  const regPct = (jug.regatesPct || 50) / 100;
-  for (let i = 0; i < nRegates; i++) {
-    acc.push({ kind: 'marker', tipo: 'regate', color: rng() < regPct ? 'exito' : 'fallo', shape: 'square', x: near(base.x + 8, base.sx), y: near(base.y, base.sy) });
+  function isOk(value) {
+    if (value === true || value === 1) return true;
+    return ['true', '1', 'success', 'successful', 'won', 'accurate'].includes(String(value || '').toLowerCase());
   }
 
-  const duelPct = (jug.duelosPct || 50) / 100;
-  const nEntradas = ccClampN(Math.round((jug.accDefP90 || 0) * f * 0.35), 0, 6);
-  for (let i = 0; i < nEntradas; i++) {
-    acc.push({ kind: 'marker', tipo: 'entrada', color: rng() < duelPct ? 'exito' : 'fallo', shape: 'x', x: near(base.x - 4, base.sx + 6), y: near(base.y, base.sy + 8) });
+  function number(value) {
+    const n = Number(value);
+    return Number.isFinite(n) ? Math.max(0, Math.min(100, n)) : null;
   }
 
-  const nInter = ccClampN(Math.round((jug.intercepP90 || 0) * f), 0, 7);
-  for (let i = 0; i < nInter; i++) {
-    acc.push({ kind: 'marker', tipo: 'intercepcion', color: 'inter', shape: 'tri', x: near(base.x - 6, base.sx + 8), y: near(base.y, base.sy + 10) });
+  function norm(value) {
+    return String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]/g, '');
   }
 
-  const nRecup = ccClampN(Math.round((jug.accDefP90 || 0) * f * 0.3), 0, 5);
-  for (let i = 0; i < nRecup; i++) {
-    acc.push({ kind: 'marker', tipo: 'recuperacion', color: 'exito', shape: 'circle', x: near(base.x - 2, base.sx + 8), y: near(base.y, base.sy + 10) });
+  function title(value) {
+    return String(value || 'Acción').replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
   }
 
-  const nTiros = ccClampN(Math.round((jug.tirosP90 || 0) * f), 0, 6);
-  const golProb = ccClampN((jug.xgP90 || 0.1) * 0.9, 0.05, 0.5);
-  let golesRest = jug.goles && nTiros > 0 ? 1 : 0;
-  for (let i = 0; i < nTiros; i++) {
-    const x = near(84, 8), y = near(50, 16);
-    let res = 'desviado';
-    const r = rng();
-    if (golesRest > 0 && r < golProb + 0.15) { res = 'gol'; golesRest--; }
-    else if (r < 0.45) res = 'atajado';
-    else if (r < 0.7) res = 'desviado';
-    else res = 'bloqueado';
-    acc.push({ kind: 'shot', tipo: 'remate', res, x, y });
+  const LABELS = {
+    pass: 'Pase', cross: 'Centro', 'ball-carry': 'Carrera con balón', dribble: 'Regate',
+    tackle: 'Entrada', interception: 'Intercepción', clearance: 'Despeje',
+    'ball-recovery': 'Recuperación', block: 'Bloqueo', duel: 'Duelo'
+  };
+
+  function normalizeEvent(raw, category) {
+    const start = raw.playerCoordinates || {};
+    const end = raw.passEndCoordinates || {};
+    const x = number(start.x != null ? start.x : raw.x);
+    const y = number(start.y != null ? start.y : raw.y);
+    const ex = number(end.x != null ? end.x : raw.end_x);
+    const ey = number(end.y != null ? end.y : raw.end_y);
+    if (x == null || y == null) return null;
+
+    const action = String(raw.eventActionType || raw.actionType || category || '').toLowerCase();
+    const successful = isOk(raw.outcome);
+    const longBall = isOk(raw.isLongBall);
+    const assist = isOk(raw.isAssist);
+    let tipo = action || category || 'accion';
+    let grupo = 'otra';
+    let color = successful ? 'exito' : 'fallo';
+    let shape = 'circle';
+
+    if (assist) {
+      tipo = 'asistencia'; grupo = 'pase'; color = 'asist';
+    } else if (action === 'cross') {
+      tipo = 'centro'; grupo = 'centro'; color = successful ? 'centroOk' : 'fallo';
+    } else if (longBall) {
+      tipo = 'paseLargo'; grupo = 'pase'; color = successful ? 'largo' : 'fallo';
+    } else if (category === 'passes' || action === 'pass') {
+      tipo = 'pase'; grupo = 'pase';
+    } else if (category === 'ball-carries' || action === 'ball-carry') {
+      tipo = 'carrera'; grupo = 'carrera'; color = 'carrera';
+    } else if (category === 'dribbles' || action === 'dribble') {
+      tipo = 'regate'; grupo = 'regate'; shape = 'square';
+    } else if (['tackle', 'interception', 'clearance', 'ball-recovery', 'block'].includes(action) || category === 'defensive') {
+      grupo = 'defensa';
+      const map = { tackle: 'entrada', interception: 'intercepcion', clearance: 'despeje', 'ball-recovery': 'recuperacion', block: 'bloqueo' };
+      tipo = map[action] || action || 'defensa';
+      color = action === 'interception' ? 'inter' : action === 'clearance' ? 'despeje' : successful ? 'exito' : 'fallo';
+      shape = action === 'interception' ? 'tri' : action === 'tackle' ? 'x' : 'circle';
+    }
+
+    const rawLabel = tipo === 'asistencia' ? 'Asistencia'
+      : tipo === 'paseLargo' ? 'Pase largo'
+      : (LABELS[action] || title(action || category));
+    const label = grupo === 'carrera' || tipo === 'asistencia' || tipo === 'intercepcion' || tipo === 'despeje'
+      ? rawLabel
+      : rawLabel + (successful ? ' exitoso' : ' fallado');
+    const hasEnd = ex != null && ey != null;
+
+    return {
+      kind: hasEnd ? 'arrow' : 'marker', tipo, grupo, color, shape,
+      label, x, y, ex, ey,
+      curved: tipo === 'centro', dashed: tipo === 'carrera',
+      minuto: raw.time != null ? raw.time : (raw.minute != null ? raw.minute : null)
+    };
   }
 
-  return acc;
-}
+  function normalizeShot(shot) {
+    const result = shot.resultado === 'fuera' || shot.resultado === 'palo' ? 'desviado' : shot.resultado;
+    return {
+      kind: 'shot', tipo: 'remate', grupo: 'remate', res: result || 'desviado',
+      label: 'Remate', x: number(shot.depth), y: number(shot.width), minuto: shot.minuto
+    };
+  }
 
-// ---------- Paleta ----------
+  function lineupPlayer(item, lado) {
+    const player = item.player || {};
+    const stats = item.statistics || {};
+    return {
+      id: player.id,
+      nombre: player.name || player.shortName || 'Sin nombre',
+      posicion: item.position || player.position || '',
+      dorsal: item.jerseyNumber || item.shirtNumber || '',
+      minutos: stats.minutesPlayed != null ? stats.minutesPlayed : null,
+      titular: !item.substitute,
+      lado
+    };
+  }
+
+  function getLineups(eventId, homeEsCC) {
+    const bundled = window.CC_ACTIONS_BUNDLE && window.CC_ACTIONS_BUNDLE[String(eventId)];
+    if (bundled && Array.isArray(bundled.cc) && Array.isArray(bundled.rv)) {
+      return Promise.resolve({ cc: bundled.cc, rv: bundled.rv });
+    }
+    return fetchCached('lineups:' + eventId, '/event/' + eventId + '/lineups').then(data => {
+      const homeSide = homeEsCC ? 'cc' : 'rv';
+      const awaySide = homeEsCC ? 'rv' : 'cc';
+      const home = (((data.home || {}).players) || []).map(p => lineupPlayer(p, homeSide));
+      const away = (((data.away || {}).players) || []).map(p => lineupPlayer(p, awaySide));
+      const all = home.concat(away).filter(p => p.id && p.nombre);
+      if (!all.length) throw new Error('La alineación real no está disponible para este partido.');
+      return {
+        cc: all.filter(p => p.lado === 'cc'),
+        rv: all.filter(p => p.lado === 'rv')
+      };
+    });
+  }
+
+  function mergePlayerShots(events, player, shots) {
+    const playerName = norm(player.nombre);
+    (shots || []).filter(s => norm(s.jugador) === playerName).forEach(s => {
+      const shot = normalizeShot(s);
+      if (shot.x != null && shot.y != null) events.push(shot);
+    });
+    return events;
+  }
+
+  function getPlayerActions(eventId, player, shots) {
+    if (String(player.id).startsWith('shot:')) {
+      const shotsOnly = mergePlayerShots([], player, shots);
+      shotsOnly.ccParcial = true;
+      shotsOnly.ccError = 'No se pudo cargar el detalle completo del partido.';
+      return Promise.resolve(shotsOnly);
+    }
+    const bundled = window.CC_ACTIONS_BUNDLE && window.CC_ACTIONS_BUNDLE[String(eventId)];
+    if (bundled && bundled.actions && Array.isArray(bundled.actions[String(player.id)])) {
+      const events = bundled.actions[String(player.id)].map(item => normalizeEvent({
+        eventActionType: item.a, outcome: item.o, isLongBall: item.l, isAssist: item.i,
+        playerCoordinates: { x: item.x, y: item.y },
+        passEndCoordinates: item.ex == null || item.ey == null ? null : { x: item.ex, y: item.ey },
+        time: item.t
+      }, item.c)).filter(Boolean);
+      return Promise.resolve(mergePlayerShots(events, player, shots));
+    }
+    return fetchCached('actions:' + eventId + ':' + player.id,
+      '/event/' + eventId + '/player/' + player.id + '/rating-breakdown').then(data => {
+      const events = [];
+      Object.keys(data).forEach(category => {
+        if (!Array.isArray(data[category]) || /shot/i.test(category)) return;
+        data[category].forEach(raw => {
+          const action = normalizeEvent(raw, category);
+          if (action) events.push(action);
+        });
+      });
+      return mergePlayerShots(events, player, shots);
+    }).catch(error => {
+      const shotsOnly = mergePlayerShots([], player, shots);
+      if (!shotsOnly.length) throw error;
+      shotsOnly.ccParcial = true;
+      shotsOnly.ccError = String((error && error.message) || error);
+      return shotsOnly;
+    });
+  }
+
+  window.CC_ACTIONS = { getLineups, getPlayerActions };
+})();
+
 const CC_ACC_COLORS = {
-  exito: '#1E7A45', fallo: '#D11F2E', largo: '#2563EB', asist: '#E0A100',
-  centroOk: '#0E9AA8', carrera: '#0E9AA8', despeje: '#E07A00', inter: '#2563EB',
-  gol: '#D11F2E', atajado: '#E0A100', desviado: '#9C9C97', bloqueado: '#3A3A3A'
-};
-const CC_ACC_LABELS = {
-  pase: 'Pase exitoso', fallo: 'Pase / acción fallada', paseLargo: 'Pase largo exitoso',
-  asistencia: 'Asistencia', centro: 'Centro', centroOk: 'Centro exitoso', carrera: 'Carrera con balón',
-  despeje: 'Despeje', regate: 'Regate', entrada: 'Entrada', intercepcion: 'Intercepción',
-  recuperacion: 'Recuperación', remate: 'Remate'
+  exito: '#3ED47F', fallo: '#FF5A62', largo: '#5FA8FF', asist: '#FFC94D',
+  centroOk: '#3FD3E0', carrera: '#3FD3E0', despeje: '#FF9E45', inter: '#5FA8FF',
+  gol: '#FF5A62', atajado: '#FFC94D', desviado: '#C9CFC9', bloqueado: '#93A09B'
 };
 
-// ---------- Mapeo opta → coordenadas SVG (cancha 105x68, ataca derecha) ----------
+const CC_SHOT_LABEL = { gol: 'Remate: Gol', atajado: 'Remate: Atajado', bloqueado: 'Remate: Bloqueado', desviado: 'Remate: Desviado' };
 const CC_PX = 105, CC_PY = 68;
 function ccAX(x) { return (x / 100) * CC_PX; }
 function ccAY(y) { return ((100 - y) / 100) * CC_PY; }
 
 function CCActionPitch({ acciones }) {
-  // Marcas de cancha
-  const lineas = '#B7C4B7';
-  const mk = (a, i) => {
-    const X = ccAX(a.x), Y = ccAY(a.y);
-    const c = CC_ACC_COLORS[a.color] || '#3A3A3A';
-    if (a.kind === 'arrow') {
-      const EX = ccAX(a.ex), EY = ccAY(a.ey);
-      const col = CC_ACC_COLORS[a.color] || '#3A3A3A';
-      const mid = a.curved
-        ? `Q ${(X + EX) / 2 + (EY - Y) * 0.18} ${(Y + EY) / 2 - (EX - X) * 0.18} ${EX} ${EY}`
-        : `L ${EX} ${EY}`;
-      return (
-        <g key={i}>
-          <path d={`M ${X} ${Y} ${mid}`} fill="none" stroke={col} strokeWidth="0.5"
-            strokeOpacity="0.85" strokeLinecap="round" strokeDasharray={a.dashed ? '1.4 1.4' : 'none'}
-            markerEnd={`url(#cc-arrow-${a.color})`}></path>
-          <circle cx={X} cy={Y} r="0.7" fill={col} opacity="0.6"></circle>
-        </g>
-      );
-    }
-    if (a.kind === 'shot') {
-      const col = CC_ACC_COLORS[a.res] || '#9C9C97';
-      if (a.res === 'gol') {
-        // estrella
-        const pts = [];
-        for (let k = 0; k < 10; k++) {
-          const ang = -Math.PI / 2 + k * Math.PI / 5;
-          const rr = k % 2 === 0 ? 2.6 : 1.1;
-          pts.push((X + Math.cos(ang) * rr) + ',' + (Y + Math.sin(ang) * rr));
-        }
-        return <polygon key={i} points={pts.join(' ')} fill={col} stroke="#fff" strokeWidth="0.3"></polygon>;
-      }
-      return (
-        <g key={i} stroke={col} strokeWidth="0.8" strokeLinecap="round">
-          <line x1={X - 1.6} y1={Y - 1.6} x2={X + 1.6} y2={Y + 1.6}></line>
-          <line x1={X - 1.6} y1={Y + 1.6} x2={X + 1.6} y2={Y - 1.6}></line>
-        </g>
-      );
-    }
-    // markers
-    if (a.shape === 'square') return <rect key={i} x={X - 1.5} y={Y - 1.5} width="3" height="3" rx="0.4" fill={c} stroke="#fff" strokeWidth="0.3"></rect>;
-    if (a.shape === 'x') return (
-      <g key={i} stroke={c} strokeWidth="0.85" strokeLinecap="round">
-        <line x1={X - 1.6} y1={Y - 1.6} x2={X + 1.6} y2={Y + 1.6}></line>
-        <line x1={X - 1.6} y1={Y + 1.6} x2={X + 1.6} y2={Y - 1.6}></line>
-      </g>
-    );
-    if (a.shape === 'tri') return <polygon key={i} points={`${X},${Y - 1.9} ${X + 1.7},${Y + 1.4} ${X - 1.7},${Y + 1.4}`} fill={c} stroke="#fff" strokeWidth="0.3"></polygon>;
-    return <circle key={i} cx={X} cy={Y} r="1.6" fill={c} stroke="#fff" strokeWidth="0.3"></circle>;
-  };
-
+  const [tip, setTip] = React.useState(null);
+  const lineas = 'rgba(255,255,255,0.68)';
   const colores = Object.keys(CC_ACC_COLORS);
 
-  return (
-    <svg viewBox={`-2 -2 ${CC_PX + 4} ${CC_PY + 4}`} className="cc-actionpitch" preserveAspectRatio="xMidYMid meet">
-      <defs>
-        {colores.map(k => (
-          <marker key={k} id={`cc-arrow-${k}`} viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
-            <path d="M 0 1 L 9 5 L 0 9 z" fill={CC_ACC_COLORS[k]}></path>
-          </marker>
-        ))}
-      </defs>
-      {/* césped */}
-      <rect x="0" y="0" width={CC_PX} height={CC_PY} fill="#EEF4EE" stroke={lineas} strokeWidth="0.4"></rect>
-      {/* franjas */}
-      {[0, 1, 2, 3, 4, 5].map(i => i % 2 === 0 ? <rect key={i} x={i * (CC_PX / 6)} y="0" width={CC_PX / 6} height={CC_PY} fill="#E6EFE6"></rect> : null)}
-      {/* línea media y círculo */}
-      <line x1={CC_PX / 2} y1="0" x2={CC_PX / 2} y2={CC_PY} stroke={lineas} strokeWidth="0.4"></line>
-      <circle cx={CC_PX / 2} cy={CC_PY / 2} r="9.15" fill="none" stroke={lineas} strokeWidth="0.4"></circle>
-      <circle cx={CC_PX / 2} cy={CC_PY / 2} r="0.7" fill={lineas}></circle>
-      {/* áreas (ataca a la derecha; defensa izquierda) */}
-      <rect x="0" y={CC_PY / 2 - 20.16} width="16.5" height="40.32" fill="none" stroke={lineas} strokeWidth="0.4"></rect>
-      <rect x="0" y={CC_PY / 2 - 9.16} width="5.5" height="18.32" fill="none" stroke={lineas} strokeWidth="0.4"></rect>
-      <rect x={CC_PX - 16.5} y={CC_PY / 2 - 20.16} width="16.5" height="40.32" fill="none" stroke={lineas} strokeWidth="0.4"></rect>
-      <rect x={CC_PX - 5.5} y={CC_PY / 2 - 9.16} width="5.5" height="18.32" fill="none" stroke={lineas} strokeWidth="0.4"></rect>
-      <circle cx="9.4" cy={CC_PY / 2} r="0.6" fill={lineas}></circle>
-      <circle cx={CC_PX - 9.4} cy={CC_PY / 2} r="0.6" fill={lineas}></circle>
-      {/* dirección de ataque */}
-      <text x={CC_PX / 2} y={CC_PY - 1.5} textAnchor="middle" className="cc-acc-dir">ATAQUE →</text>
-      {/* acciones */}
-      {acciones.map((a, i) => mk(a, i))}
-    </svg>
-  );
+  const marker = (a, i) => {
+    const x = ccAX(a.x), y = ccAY(a.y);
+    const color = CC_ACC_COLORS[a.kind === 'shot' ? a.res : a.color] || '#FFFFFF';
+    const label = a.kind === 'shot' ? (CC_SHOT_LABEL[a.res] || 'Remate') : a.label;
+    const hover = {
+      className: 'cc-acc-ev' + (tip ? (tip.i === i ? ' cc-acc-on' : ' cc-acc-dim') : ''),
+      onMouseEnter: () => setTip({ i, x, y, txt: label + (a.minuto != null ? ' · ' + a.minuto + '′' : '') }),
+      onMouseLeave: () => setTip(null)
+    };
+
+    if (a.kind === 'arrow') {
+      const ex = ccAX(a.ex), ey = ccAY(a.ey);
+      const route = a.curved
+        ? `Q ${(x + ex) / 2 + (ey - y) * 0.18} ${(y + ey) / 2 - (ex - x) * 0.18} ${ex} ${ey}`
+        : `L ${ex} ${ey}`;
+      return <g key={i} {...hover}>
+        <path d={`M ${x} ${y} ${route}`} fill="none" stroke={color} strokeWidth="0.5" strokeOpacity="0.88"
+          strokeLinecap="round" strokeDasharray={a.dashed ? '1.4 1.4' : 'none'} markerEnd={`url(#cc-arrow-${a.color})`}></path>
+        <path d={`M ${x} ${y} ${route}`} fill="none" stroke="transparent" strokeWidth="3"></path>
+        <circle cx={x} cy={y} r="0.7" fill={color} opacity="0.7"></circle>
+      </g>;
+    }
+    if (a.kind === 'shot' && a.res === 'gol') {
+      const points = [];
+      for (let k = 0; k < 10; k++) {
+        const angle = -Math.PI / 2 + k * Math.PI / 5;
+        const radius = k % 2 === 0 ? 2.6 : 1.1;
+        points.push((x + Math.cos(angle) * radius) + ',' + (y + Math.sin(angle) * radius));
+      }
+      return <polygon key={i} {...hover} points={points.join(' ')} fill={color} stroke="#fff" strokeWidth="0.3"></polygon>;
+    }
+    if (a.kind === 'shot' || a.shape === 'x') return <g key={i} {...hover} stroke={color} strokeWidth="0.85" strokeLinecap="round">
+      <line x1={x - 1.6} y1={y - 1.6} x2={x + 1.6} y2={y + 1.6}></line>
+      <line x1={x - 1.6} y1={y + 1.6} x2={x + 1.6} y2={y - 1.6}></line>
+    </g>;
+    if (a.shape === 'square') return <rect key={i} {...hover} x={x - 1.5} y={y - 1.5} width="3" height="3" rx="0.4" fill={color} stroke="#fff" strokeWidth="0.3"></rect>;
+    if (a.shape === 'tri') return <polygon key={i} {...hover} points={`${x},${y - 1.9} ${x + 1.7},${y + 1.4} ${x - 1.7},${y + 1.4}`} fill={color} stroke="#fff" strokeWidth="0.3"></polygon>;
+    return <circle key={i} {...hover} cx={x} cy={y} r="1.6" fill={color} stroke="#fff" strokeWidth="0.3"></circle>;
+  };
+
+  return <svg viewBox={`-2 -2 ${CC_PX + 4} ${CC_PY + 4}`} className="cc-actionpitch" preserveAspectRatio="xMidYMid meet">
+    <defs>
+      <linearGradient id="cc-acc-grass" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#1F8A4C"></stop><stop offset="1" stopColor="#136436"></stop></linearGradient>
+      {colores.map(k => <marker key={k} id={`cc-arrow-${k}`} viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M 0 1 L 9 5 L 0 9 z" fill={CC_ACC_COLORS[k]}></path></marker>)}
+    </defs>
+    <rect x="0" y="0" width={CC_PX} height={CC_PY} fill="url(#cc-acc-grass)" stroke={lineas} strokeWidth="0.5"></rect>
+    {[0, 1, 2, 3, 4, 5].map(i => i % 2 === 0 ? <rect key={i} x={i * (CC_PX / 6)} y="0" width={CC_PX / 6} height={CC_PY} fill="rgba(255,255,255,0.05)"></rect> : null)}
+    <line x1={CC_PX / 2} y1="0" x2={CC_PX / 2} y2={CC_PY} stroke={lineas} strokeWidth="0.4"></line>
+    <circle cx={CC_PX / 2} cy={CC_PY / 2} r="9.15" fill="none" stroke={lineas} strokeWidth="0.4"></circle>
+    <circle cx={CC_PX / 2} cy={CC_PY / 2} r="0.7" fill={lineas}></circle>
+    <rect x="0" y={CC_PY / 2 - 20.16} width="16.5" height="40.32" fill="none" stroke={lineas} strokeWidth="0.4"></rect>
+    <rect x="0" y={CC_PY / 2 - 9.16} width="5.5" height="18.32" fill="none" stroke={lineas} strokeWidth="0.4"></rect>
+    <rect x={CC_PX - 16.5} y={CC_PY / 2 - 20.16} width="16.5" height="40.32" fill="none" stroke={lineas} strokeWidth="0.4"></rect>
+    <rect x={CC_PX - 5.5} y={CC_PY / 2 - 9.16} width="5.5" height="18.32" fill="none" stroke={lineas} strokeWidth="0.4"></rect>
+    <circle cx="9.4" cy={CC_PY / 2} r="0.6" fill={lineas}></circle><circle cx={CC_PX - 9.4} cy={CC_PY / 2} r="0.6" fill={lineas}></circle>
+    <text x={CC_PX / 2} y={CC_PY - 1.5} textAnchor="middle" className="cc-acc-dir">ATAQUE →</text>
+    {(acciones || []).map(marker)}
+    {tip && (() => {
+      const width = Math.min(64, tip.txt.length * 1.45 + 5);
+      const x = Math.max(width / 2 + 1, Math.min(CC_PX - width / 2 - 1, tip.x));
+      const y = tip.y > 9 ? tip.y - 7.4 : tip.y + 2.8;
+      return <g pointerEvents="none"><rect x={x - width / 2} y={y} width={width} height="4.6" rx="1.2" fill="rgba(8,14,10,0.94)" stroke="rgba(255,255,255,0.4)" strokeWidth="0.15"></rect><text x={x} y={y + 3.2} textAnchor="middle" fill="#fff" fontSize="2.7" fontWeight="700">{tip.txt}</text></g>;
+    })()}
+  </svg>;
 }
 
-// ---------- Leyenda dinámica ----------
+function CCLegendSymbol({ action }) {
+  const color = CC_ACC_COLORS[action.kind === 'shot' ? action.res : action.color] || '#FFFFFF';
+  const shape = action.kind === 'arrow' ? 'line' : action.kind === 'shot' && action.res === 'gol' ? 'star' : action.kind === 'shot' ? 'x' : action.shape;
+  const star = '13,1 15,6 21,6 16.5,9.5 18.5,15 13,11.5 7.5,15 9.5,9.5 5,6 11,6';
+  return <svg className="cc-acc-sym" viewBox="0 0 26 16" width="26" height="16" aria-hidden="true">
+    {shape === 'line' && <g><line x1="2" y1="8" x2="17" y2="8" stroke={color} strokeWidth="2.2" strokeLinecap="round"></line><path d="M 16 3.5 L 24 8 L 16 12.5 z" fill={color}></path></g>}
+    {shape === 'star' && <polygon points={star} fill={color}></polygon>}
+    {shape === 'x' && <g stroke={color} strokeWidth="2.4" strokeLinecap="round"><line x1="8" y1="3" x2="18" y2="13"></line><line x1="8" y1="13" x2="18" y2="3"></line></g>}
+    {shape === 'square' && <rect x="8" y="3" width="10" height="10" rx="1.4" fill={color}></rect>}
+    {shape === 'tri' && <polygon points="13,2.5 19.5,13.5 6.5,13.5" fill={color}></polygon>}
+    {!['line', 'star', 'x', 'square', 'tri'].includes(shape) && <circle cx="13" cy="8" r="5.4" fill={color}></circle>}
+  </svg>;
+}
+
 function CCActionLegend({ acciones }) {
-  const presentes = [];
-  const visto = new Set();
-  acciones.forEach(a => {
-    let key, color, shape;
-    if (a.kind === 'shot') { key = 'remate-' + a.res; color = CC_ACC_COLORS[a.res]; shape = a.res === 'gol' ? 'star' : 'x'; }
-    else if (a.kind === 'arrow') { key = a.tipo; color = CC_ACC_COLORS[a.color]; shape = 'line'; }
-    else { key = a.tipo + '-' + a.color; color = CC_ACC_COLORS[a.color]; shape = a.shape; }
-    if (visto.has(key)) return;
-    visto.add(key);
-    let label = CC_ACC_LABELS[a.tipo] || a.tipo;
-    if (a.kind === 'shot') label = 'Remate: ' + (a.res === 'gol' ? 'Gol' : a.res === 'atajado' ? 'Atajado' : a.res === 'bloqueado' ? 'Bloqueado' : 'Desviado');
-    else if (a.color === 'fallo' && a.kind !== 'arrow') label = (CC_ACC_LABELS[a.tipo] || a.tipo) + ' fallada';
-    else if (a.color === 'exito' && a.kind === 'marker' && a.tipo !== 'recuperacion') label = (CC_ACC_LABELS[a.tipo] || a.tipo) + ' exitosa';
-    presentes.push({ key, color, shape, label });
+  const unique = [];
+  const seen = new Set();
+  (acciones || []).forEach(action => {
+    const label = action.kind === 'shot' ? (CC_SHOT_LABEL[action.res] || 'Remate') : action.label;
+    const key = action.kind + '|' + action.tipo + '|' + action.color + '|' + action.res;
+    if (!seen.has(key)) { seen.add(key); unique.push({ ...action, label }); }
   });
-  return (
-    <div className="cc-acc-legend">
-      {presentes.map(p => (
-        <span key={p.key} className="cc-acc-legend-item">
-          <span className={'cc-acc-swatch sh-' + p.shape} style={{ background: p.shape === 'line' ? 'none' : p.color, color: p.color }}>
-            {p.shape === 'line' ? <span className="cc-acc-line" style={{ background: p.color }}></span> : null}
-          </span>
-          {p.label}
-        </span>
-      ))}
-    </div>
-  );
+  return <div className="cc-acc-legend">{unique.map((action, i) => <span key={i} className="cc-acc-legend-item"><CCLegendSymbol action={action}></CCLegendSymbol>{action.label}</span>)}</div>;
 }
 
-Object.assign(window, { ccGenerarAcciones, CCActionPitch, CCActionLegend, CC_ACC_COLORS, CC_ACC_LABELS });
+Object.assign(window, { CCActionPitch, CCActionLegend });

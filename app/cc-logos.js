@@ -1,5 +1,5 @@
 // ============================================================
-// ColoColo Football Center — Logos vía Sofascore CDN
+// ColoColo Football Center — Logos reales extraídos de SofaScore
 // Torneo: Primera División Chile (unique-tournament 11653)
 // Temporada: 88493 · Mapea nombre de equipo → id → logo PNG
 // ============================================================
@@ -18,6 +18,29 @@
       .replace(/\s+/g, ' ')
       .trim();
   }
+
+  function slug(s) {
+    return norm(s).replace(/\s+/g, '-');
+  }
+
+  var LOGOS_EXTRAIDOS = {
+    'audax-italiano': true,
+    'cobresal': true,
+    'colo-colo': true,
+    'coquimbo-unido': true,
+    'd-concepcion': true,
+    'deportes-la-serena': true,
+    'deportes-limache': true,
+    'everton': true,
+    'huachipato': true,
+    'nublense': true,
+    'o-higgins': true,
+    'palestino': true,
+    'u-de-concepcion': true,
+    'union-la-calera': true,
+    'universidad-catolica': true,
+    'universidad-de-chile': true
+  };
 
   // Nombres de la plataforma → forma esperada en Sofascore
   var ALIAS = {
@@ -79,6 +102,11 @@
     return null;
   }
 
+  function logoLocal(nombre) {
+    var s = slug(nombre);
+    return LOGOS_EXTRAIDOS[s] ? 'public/team-logos/' + s + '.png' : null;
+  }
+
   function emitir() {
     listo = true;
     try { window.dispatchEvent(new Event('cc-logos-ready')); } catch (e) {}
@@ -122,6 +150,10 @@
 
   function cargar() {
     sembrar();
+    if (mapa && Object.keys(mapa).length) {
+      emitir();
+      return;
+    }
     var cache = leerCache();
     if (cache && cache.length) {
       mapa = construirMapa(cache);
@@ -174,6 +206,8 @@
     teamUrl: function (nombre) {
       var q = norm(nombre);
       if (manuales[q]) return manuales[q];
+      var local = logoLocal(nombre);
+      if (local) return local;
       var e = buscar(nombre);
       return e ? 'https://img.sofascore.com/api/v1/team/' + e.id + '/image' : null;
     },
@@ -185,7 +219,7 @@
     },
     getManual: function (nombre) { return manuales[norm(nombre)] || ''; },
     tournamentUrl: function () {
-      return 'https://img.sofascore.com/api/v1/unique-tournament/' + TORNEO + '/image';
+      return 'public/team-logos/liga-de-primera.png';
     },
     status: function () {
       return {

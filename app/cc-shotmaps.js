@@ -610,6 +610,91 @@
       });
   }
 
+  // ---------- Cola de actualización por lotes (anti-bloqueo) ----------
+  // Sofascore aplica bloqueos temporales si se le pide demasiado seguido.
+  // La cola descarga los shotmaps pendientes en lotes pequeños (máx 3),
+  // espaciados 5 s, y ante el primer fallo se detiene y reintenta en N horas.
+  var COLA_KEY = 'cc_shotmaps_cola_v1';
+  var colaProcesando = false;
+
+  function leerCola() {
+    try { var c = JSON.parse(localStorage.getItem(COLA_KEY)); if (c && typeof c === 'object') return c; } catch (e) {}
+    return { proximo: 0, horas: 3, ultimo: null };
+  }
+  function guardarCola(c) { try { localStorage.setItem(COLA_KEY, JSON.stringify(c)); } catch (e) {} }
+
+  function eventIdDe(j) {
+    var p = partidosSofa[String(j)];
+    if (p && p.eventId) return p.eventId;
+    try { return ((window.CC_SOFA_SNAPSHOT || {}).eventIds || {})[String(j)] || null; } catch (e) { return null; }
+  }
+
+  function colaPendientes() {
+    var fx = (window.CC_DATA && CC_DATA.fixture) || [];
+    var out = [];
+    fx.forEach(function (m) {
+      if (m && m.resultado && !datos[String(m.j)] && eventIdDe(m.j)) out.push(m.j);
+    });
+    return out;
+  }
+
+  function procesarCola(forzar) {
+    if (colaProcesando) return Promise.resolve('procesando');
+    var c = leerCola();
+    var ahora = Date.now();
+    if (!forzar && ahora < (c.proximo || 0)) return Promise.resolve('en-espera');
+    var pend = colaPendientes();
+    if (!pend.length) {
+      c.ultimo = 'Al día: todas las fechas jugadas tienen shotmap.';
+      guardarCola(c); emitir();
+      return Promise.resolve('al-dia');
+    }
+    colaProcesando = true;
+    var fx = (window.CC_DATA && CC_DATA.fixture) || [];
+    var lote = pend.slice(0, 3);
+    var ok = 0;
+
+    function fin(msg, bloqueado) {
+      colaProcesando = false;
+      c = leerCola();
+      c.horas = c.horas || 3;
+      // tras éxito parcial o bloqueo, el próximo intento espera N horas
+      c.proximo = (bloqueado || colaPendientes().length) ? (Date.now() + c.horas * 3600e3) : 0;
+      c.ultimo = msg + ' · ' + new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+      guardarCola(c);
+      if (ok) guardarCache();
+      emitir();
+      return ok;
+    }
+
+    function paso(i) {
+      if (i >= lote.length) return Promise.resolve(fin('Lote completo: ' + ok + ' shotmap(s) nuevos', false));
+      var j = lote[i];
+      var id = eventIdDe(j);
+      var m = null;
+      fx.forEach(function (x) { if (x && x.j === j) m = x; });
+      return sofaFetchAny('/event/' + id + '/shotmap')
+        .then(function (data) {
+          var arr = (data && data.shotmap) || [];
+          if (!arr.length) throw new Error('sin tiros');
+          datos[String(j)] = {
+            fuente: 'auto',
+            eventId: id,
+            shots: arr.map(function (s) { return transformar(s, !!(m && m.local)); })
+          };
+          ok += 1;
+          return new Promise(function (r) { setTimeout(r, 5000); }).then(function () { return paso(i + 1); });
+        })
+        .catch(function (err) {
+          return fin('Bloqueado por Sofascore (' + String((err && err.message) || err).slice(0, 60) + '). ' + ok + ' descargado(s) antes del corte', true);
+        });
+    }
+    return paso(0);
+  }
+
+  // Intento automático discreto al abrir la app (respeta el enfriamiento)
+  setTimeout(function () { try { procesarCola(false); } catch (e) {} }, 9000);
+
   window.CC_SHOTMAPS = {
     get: function (j) {
       var d = datos[String(j)];
@@ -656,6 +741,18 @@
     cuantos: function () {
       return Object.keys(datos).length;
     },
+
+    // --- cola por lotes ---
+    cola: function () {
+      var c = leerCola();
+      return { pendientes: colaPendientes(), proximo: c.proximo || 0, horas: c.horas || 3, ultimo: c.ultimo || null, procesando: colaProcesando };
+    },
+    setColaHoras: function (h) {
+      var c = leerCola();
+      c.horas = Math.max(1, Math.min(12, Number(h) || 3));
+      guardarCola(c); emitir();
+    },
+    intentarCola: function () { return procesarCola(true); },
 
     error: error,
 

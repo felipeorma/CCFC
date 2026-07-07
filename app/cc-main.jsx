@@ -6,6 +6,7 @@
 /* global PageInicio, PageCalendario, PageResumen, PageAnalisis, PagePPDA, PageTiros */
 /* global PageRankEquipos, PageRankJugadores, PageCompEquipos, PageCompJugadores */
 /* global PageDispJugadores, PageDispEquipos, PageScouting, PageCampograma, PageConfig, PageUsuarios, PageLogin */
+/* global PageGestion, PageCaptacion, PageOfrecidos, PageParaOfrecer */
 /* global useTweaks, TweaksPanel, TweakSection, TweakRadio, TweakColor */
 
 const { useState, useEffect } = React;
@@ -14,7 +15,6 @@ const CC_PAGES = {
   inicio: { titulo: 'Inicio', comp: p => <PageInicio usuario={p.usuario}></PageInicio> },
   calendario: { titulo: 'Calendario', comp: () => <PageCalendario></PageCalendario> },
   resumen: { titulo: 'Resumen de Temporada', comp: () => <PageResumen></PageResumen> },
-  analisis: { titulo: 'Análisis Avanzado', comp: () => <PageAnalisis></PageAnalisis> },
   ppda: { titulo: 'PPDA', comp: () => <PagePPDA></PagePPDA> },
   tiros: { titulo: 'Tiros y xG', comp: () => <PageTiros></PageTiros> },
   reporte: { titulo: 'Reporte Post-Partido', comp: () => <PageReporte></PageReporte> },
@@ -24,9 +24,14 @@ const CC_PAGES = {
   'rank-jugadores': { titulo: 'Ranking de Jugadores', comp: () => <PageRankJugadores></PageRankJugadores> },
   'disp-jugadores': { titulo: 'Dispersión · Jugadores', comp: () => <PageDispJugadores></PageDispJugadores> },
   'disp-equipos': { titulo: 'Dispersión · Equipos', comp: () => <PageDispEquipos></PageDispEquipos> },
-  scouting: { titulo: 'Informes de Scouting', comp: () => <PageScouting></PageScouting> },
+  scouting: { titulo: 'Informes de Scouting', comp: p => <PageScouting usuario={p.usuario}></PageScouting> },
+  ofrecidos: { titulo: 'Jugadores ofrecidos', comp: p => <PageOfrecidos usuario={p.usuario}></PageOfrecidos> },
+  'para-ofrecer': { titulo: 'Jugadores para ofrecer', comp: p => <PageParaOfrecer usuario={p.usuario}></PageParaOfrecer> },
+  dt: { titulo: 'Dirección Técnica', comp: p => <PageDT usuario={p.usuario}></PageDT> },
+  gestion: { titulo: 'Gestión de Jugadores', comp: p => <PageGestion usuario={p.usuario}></PageGestion> },
+  captacion: { titulo: 'Captación', comp: p => <PageCaptacion usuario={p.usuario}></PageCaptacion> },
   campograma: { titulo: 'Campograma', comp: () => <PageCampograma></PageCampograma> },
-  config: { titulo: 'Configuración', comp: () => <PageConfig></PageConfig> },
+  config: { titulo: 'Configuración', comp: p => <PageConfig usuario={p.usuario}></PageConfig> },
   usuarios: { titulo: 'Gestión de Usuarios', comp: p => <PageUsuarios sesion={p.usuario}></PageUsuarios> }
 };
 
@@ -115,6 +120,10 @@ function App() {
             <span className="cc-topbar-liga"><CCTournamentLogo size={20}></CCTournamentLogo>{window.CC_DATA.club.temporada}</span>
           </div>
           <div className="cc-topbar-right">
+            <div className="cc-lang-switch" role="group" aria-label="Idioma / Language">
+              <button className="cc-lang-opt" data-lang="es" onClick={() => window.CC_I18N && window.CC_I18N.set('es')}>ES</button>
+              <button className="cc-lang-opt" data-lang="en" onClick={() => window.CC_I18N && window.CC_I18N.set('en')}>EN</button>
+            </div>
             <span className="cc-topbar-user">{sesion}{(() => { try { const r = window.ccRolDe && window.ccRolDe(sesion); return r ? ' · ' + r : ''; } catch (e) { return ''; } })()}</span>
             <button className="cc-btn-ghost" onClick={cerrarSesion}>
               <Icon name="salir" size={16}></Icon>
@@ -126,7 +135,7 @@ function App() {
         <main className="cc-main" data-screen-label={actualPermitida.titulo}>
           {actualPermitida.comp({ usuario: sesion })}
           <footer className="cc-foot">
-            ColoColo Football Center · Plataforma interna de análisis · Datos: Wyscout
+            ColoColo Football Center · Plataforma interna de análisis
           </footer>
         </main>
       </div>

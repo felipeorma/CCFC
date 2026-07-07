@@ -4,10 +4,17 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "data:player-actions": "node scripts/update-player-actions.mjs",
+    "data:player-lineups": "node scripts/update-player-actions.mjs --lineups-only",
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "npm run build:pages",
+    "build:vite": "vite build",
+    "build:pages": "npm run data:team-stats && node scripts/build-pages.mjs",
+    "data:team-stats": "node scripts/update-team-stats.mjs",
     "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "predeploy": "npm run build:pages",
+    "deploy": "gh-pages -d dist --dotfiles --no-history --nojekyll --remove '{**/*,.github,.github/**}' -m \"Deploy static site\""
   },
   "dependencies": {
     "@google/generative-ai": "^0.21.0",
@@ -52,9 +59,11 @@
     "eslint": "^8.57.0",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.6",
+    "gh-pages": "^6.3.0",
     "postcss": "^8.4.38",
     "tailwindcss": "^3.4.1",
     "typescript": "^5.4.2",
     "vite": "^5.1.6"
-  }
+  },
+  "homepage": "https://felipeorma.github.io/CCFC/"
 }

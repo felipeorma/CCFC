@@ -23,8 +23,7 @@ window.CC_SOFA_SNAPSHOT = {
   "Audax Italiano": 3162,
   "Cobresal": 3167,
   "D. Concepción": 3160,
-  "Unión La Calera": 48242,
-  "Curicó Unido": 33595
+  "Unión La Calera": 48242
  },
  "tabla": [
   { "pos": 1,  "nombre": "Colo-Colo",            "pj": 14, "g": 11, "e": 0, "p": 3, "gf": 26, "gc": 12, "dg": 14,  "pts": 33 },
@@ -59,6 +58,7 @@ window.CC_SOFA_SNAPSHOT = {
   "11": 15353028,
   "12": 15353041,
   "13": 15353044,
-  "14": 15353051
+  "14": 15353051,
+  "15": 15353054
  }
 };
