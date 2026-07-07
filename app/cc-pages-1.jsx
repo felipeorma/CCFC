@@ -43,8 +43,32 @@ function ccPendientesFechaVencida(fixture) {
  return fixture.filter(m => !m.resultado && (!m.fecha || m.fecha < hoy));
 }
 
+function ccTieneDatosPartido(j) {
+ const hasStats = (CC_DATA.partidos || []).some(p => String(p.j) === String(j));
+ const hasShot = !!(
+  (window.CC_SHOTMAPS_BUNDLE && window.CC_SHOTMAPS_BUNDLE[String(j)]) ||
+  (window.CC_SHOTMAPS && window.CC_SHOTMAPS.get && window.CC_SHOTMAPS.get(j))
+ );
+ return hasStats && hasShot;
+}
+
+function ccPartidosDatosCompletos() {
+ return (CC_DATA.partidos || []).filter(p => ccTieneDatosPartido(p.j));
+}
+
+function ccHayCargaDatosPendiente(fixture) {
+ return (fixture || []).some(m => m && m.resultado && !ccTieneDatosPartido(m.j));
+}
+
+function ccTablaConsistente(fixture, tablaViva) {
+ if (ccHayCargaDatosPendiente(fixture) && window.CC_SOFA_SNAPSHOT && Array.isArray(CC_SOFA_SNAPSHOT.tabla)) {
+  return CC_SOFA_SNAPSHOT.tabla;
+ }
+ return tablaViva;
+}
+
 function ccRecordReal() {
- const fx = CC_DATA.fixture.filter(m => m.resultado);
+ const fx = ccPartidosDatosCompletos();
  const g = fx.filter(m => { const [a, b] = m.resultado.split('-').map(Number); return a > b; }).length;
  const e = fx.filter(m => { const [a, b] = m.resultado.split('-').map(Number); return a === b; }).length;
  const p = fx.length - g - e;
@@ -55,8 +79,7 @@ function ccRecordReal() {
 
 // Forma (últimos 5) calculada desde los partidos reales del Excel
 function ccForma() {
- return CC_DATA.fixture
-  .filter(m => m.resultado)
+ return ccPartidosDatosCompletos()
   .slice(-5)
   .map(m => { const [a, b] = m.resultado.split('-').map(Number); return a > b ? 'V' : a === b ? 'E' : 'D'; });
 }
@@ -139,12 +162,13 @@ function PageInicio({ usuario }) {
  const sofa = useSofa();
  const fixture = useFixtureActual();
  const rec = ccRecordReal();
- const filaCC = sofa.tabla ? sofa.tabla.find(t => t.nombre === 'Colo-Colo') : null;
+ const tablaConsistente = ccTablaConsistente(fixture, sofa.tabla);
+ const filaCC = tablaConsistente ? tablaConsistente.find(t => t.nombre === 'Colo-Colo') : null;
  const pendientes = ccPendientesVigentes(fixture);
  const fechaVencida = ccPendientesFechaVencida(fixture);
  const proximo = pendientes[0] || null;
  const siguientes = pendientes.slice(1, 4);
- const ultimos = fixture.filter(m => m.resultado).slice(-6).reverse();
+ const ultimos = fixture.filter(m => m.resultado && ccTieneDatosPartido(m.j)).slice(-6).reverse();
  const plantel = CC_DATA.jugadores.filter(j => j.equipo === 'Colo-Colo');
  const goleador = [...plantel].sort((a, b) => b.goles - a.goles)[0];
  const asistidor = [...plantel].sort((a, b) => b.asist - a.asist)[0];
@@ -271,9 +295,10 @@ function PageCalendario() {
  const pendientes = ccPendientesVigentes(fixture);
  const fechaVencida = ccPendientesFechaVencida(fixture);
  const proximo = pendientes[0] || null;
+ const tablaCalendario = ccTablaConsistente(fixture, sofa.tabla);
 
- const reducida = !!(sofa.tabla && sofa.tabla[0] && sofa.tabla[0].g == null);
- const hayForma = !!(sofa.tabla && sofa.tabla.some(t => t.forma && t.forma.length));
+ const reducida = !!(tablaCalendario && tablaCalendario[0] && tablaCalendario[0].g == null);
+ const hayForma = !!(tablaCalendario && tablaCalendario.some(t => t.forma && t.forma.length));
  const columnas = [
   { key: 'pos', label: '#', align: 'center', render: r => r.pos },
   { key: 'nombre', label: 'Club', render: r => (
@@ -344,9 +369,9 @@ function PageCalendario() {
    ]}></SegTabs>
 
    {vista === 'tabla' && (
-    sofa.tabla && sofa.tabla.length ? (
+    tablaCalendario && tablaCalendario.length ? (
      <Card>
-      <DataTable columns={columnas} rows={sofa.tabla} highlightRow={r => r.nombre === 'Colo-Colo'} csv="tabla-posiciones-2026"></DataTable>
+      <DataTable columns={columnas} rows={tablaCalendario} highlightRow={r => r.nombre === 'Colo-Colo'} csv="tabla-posiciones-2026"></DataTable>
      </Card>
     ) : (
      <Card className="cc-pad">
@@ -364,17 +389,21 @@ function PageCalendario() {
       <span><span className="cc-dot e"></span>Empate</span>
       <span><span className="cc-dot d"></span>Derrota</span>
       <span><span className="cc-dot pend"></span>Por jugar</span>
+      <span><span className="cc-dot pend"></span>Pendiente carga de datos</span>
      </div>
      <div className="cc-fixture">
-      {fixture.map(m => (
-       <div key={'w' + m.j} className="cc-fixture-row">
-        <span className="cc-fixture-j">P{m.j}</span>
-        <span className="cc-fixture-fecha">{!m.resultado && fechaVencida.some(x => String(x.j) === String(m.j)) ? 'Fecha por actualizar' : ccFechaLarga(m.fecha)}{m.reprogramado ? ' · reprogramado' : ''}</span>
-        <Localia local={m.local}></Localia>
-        <span className="cc-fixture-rival"><CCTeamLogo team={m.rival} size={20}></CCTeamLogo>{m.rival}</span>
-        <ResultPill resultado={m.resultado} local={m.local}></ResultPill>
-       </div>
-      ))}
+      {fixture.map(m => {
+       const pendienteDatos = !!(m.resultado && !ccTieneDatosPartido(m.j));
+       return (
+        <div key={'w' + m.j} className="cc-fixture-row">
+         <span className="cc-fixture-j">P{m.j}</span>
+         <span className="cc-fixture-fecha">{!m.resultado && fechaVencida.some(x => String(x.j) === String(m.j)) ? 'Fecha por actualizar' : ccFechaLarga(m.fecha)}{m.reprogramado ? ' · reprogramado' : ''}</span>
+         <Localia local={m.local}></Localia>
+         <span className="cc-fixture-rival"><CCTeamLogo team={m.rival} size={20}></CCTeamLogo>{m.rival}</span>
+         {pendienteDatos ? <span className="cc-pill cc-pill-pendiente">Pendiente carga de datos</span> : <ResultPill resultado={m.resultado} local={m.local}></ResultPill>}
+        </div>
+       );
+      })}
      </div>
     </Card>
    )}
@@ -423,7 +452,7 @@ function PageResumen() {
  const liderando = lidera.filter(m => m.mejor).sort((a, b) => b.dif - a.dif);
 
  // Resultados: triunfos contundentes (dif ≥ 2) y derrotas preocupantes (dif ≥ 2)
- const jugados = (CC_DATA.fixture || []).filter(m => m.resultado);
+ const jugados = (CC_DATA.fixture || []).filter(m => m.resultado && ccTieneDatosPartido(m.j));
  const parse = m => { const [a, b] = m.resultado.split('-').map(Number); return { gf: a, gc: b, dif: a - b }; };
  const contundentes = jugados.map(m => ({ m, r: parse(m) })).filter(x => x.r.dif >= 2).sort((a, b) => b.r.dif - a.r.dif);
  const preocupantes = jugados.map(m => ({ m, r: parse(m) })).filter(x => x.r.dif <= -2).sort((a, b) => a.r.dif - b.r.dif);
@@ -852,4 +881,4 @@ function SimBar({ v, cls, txt }) {
  );
 }
 
-Object.assign(window, { PageInicio, PageCalendario, PageResumen, PageAnalisis, ccFechaLarga, CC_RADAR_EJES, ccNormalizarRadar, useSofa, useFixtureActual, FormaDots, ccRecordReal, ccForma});
+Object.assign(window, { PageInicio, PageCalendario, PageResumen, PageAnalisis, ccFechaLarga, CC_RADAR_EJES, ccNormalizarRadar, useSofa, useFixtureActual, FormaDots, ccRecordReal, ccForma, ccTieneDatosPartido, ccPartidosDatosCompletos, ccHayCargaDatosPendiente, ccTablaConsistente });

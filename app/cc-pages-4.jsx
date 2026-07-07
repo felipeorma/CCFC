@@ -754,10 +754,13 @@ function GestorDatos({ temporada }) {
 function SubirShotmaps() {
  const apiInicial = window.CC_SHOTMAPS;
  const baseInicial = CC_DATA.fixture || CC_DATA.partidos;
+ const tieneStatsInicial = j => (CC_DATA.partidos || []).some(p => String(p.j) === String(j));
  const jugadosInicial = baseInicial.filter(x => x && x.resultado);
+ const jugadosConStatsInicial = jugadosInicial.filter(x => tieneStatsInicial(x.j));
  const resumenInicial = apiInicial && apiInicial.resumen ? apiInicial.resumen() : null;
  const jDefault = (resumenInicial && resumenInicial.pendientes && resumenInicial.pendientes[0]) ||
-  (jugadosInicial[jugadosInicial.length - 1] && jugadosInicial[jugadosInicial.length - 1].j) ||
+  (jugadosConStatsInicial[jugadosConStatsInicial.length - 1] && jugadosConStatsInicial[jugadosConStatsInicial.length - 1].j) ||
+  (jugadosInicial.find(x => x && !tieneStatsInicial(x.j)) && jugadosInicial.find(x => x && !tieneStatsInicial(x.j)).j) ||
   (baseInicial[baseInicial.length - 1] && baseInicial[baseInicial.length - 1].j);
  const [, setTick] = p4State(0);
  const [jSel, setJSel] = p4State(String(jDefault));
@@ -772,12 +775,17 @@ function SubirShotmaps() {
 
  const api = window.CC_SHOTMAPS;
  const basePartidos = CC_DATA.fixture || CC_DATA.partidos;
+ const tieneStats = j => (CC_DATA.partidos || []).some(p => String(p.j) === String(j));
+ const tieneShotmap = j => !!(api && api.get && api.get(j));
+ const tieneDatosCompletos = j => tieneStats(j) && tieneShotmap(j);
  const jugados = basePartidos.filter(x => x && x.resultado);
+ const jugadosConStats = jugados.filter(x => tieneStats(x.j));
+ const pendientesCargaDatos = jugados.filter(x => !tieneDatosCompletos(x.j));
  const resumen = api && api.resumen
   ? api.resumen()
-  : { totalJugados: jugados.length, cargados: api ? jugados.filter(x => api.get(x.j)).length : 0, pendientes: [] };
+  : { totalJugados: jugadosConStats.length, cargados: jugadosConStats.filter(x => tieneDatosCompletos(x.j)).length, pendientes: [] };
  const cuantos = resumen.cargados || 0;
- const totalJugados = resumen.totalJugados || jugados.length || 0;
+ const totalJugados = resumen.totalJugados || jugadosConStats.length || 0;
  const partido = basePartidos.find(x => String(x.j) === jSel);
  const urlSugerida = api && partido && api.matchUrl ? api.matchUrl(partido.j) : '';
  const cambiarPartido = v => {
@@ -805,12 +813,16 @@ function SubirShotmaps() {
    <div className="cc-chart-head">
     <h3 className="cc-card-title">Shotmaps por partido</h3>
     <span className={'cc-pill ' + (cuantos >= totalJugados && totalJugados ? 'cc-pill-v' : 'cc-pill-pendiente')}>
-     {cuantos + ' de ' + totalJugados + ' partidos jugados con shotmap'}
+     {cuantos + ' de ' + totalJugados + ' partidos con Wyscout + shotmap'}
     </span>
    </div>
    <p className="cc-card-note">Pega el ID del partido o la URL de Sofascore y la plataforma descarga y arma el shotmap automáticamente. Ejemplos: <code>15353054</code> · <code>https://www.sofascore.com/api/v1/event/15353054</code></p>
    <form className="cc-filters" onSubmit={cargar}>
-    <Select label="Partido" value={jSel} onChange={cambiarPartido} options={basePartidos.map(x => ({ value: String(x.j), label: 'F' + x.j + ' · ' + (x.local ? 'vs' : 'en') + ' ' + x.rival + (x.resultado ? ' (' + x.resultado + ')' : ' · por jugar') + (api && api.get(x.j) ? ' ✓' : '') }))}></Select>
+    <Select label="Partido" value={jSel} onChange={cambiarPartido} options={basePartidos.map(x => {
+     const incompleto = x.resultado && !tieneDatosCompletos(x.j);
+     const estado = !x.resultado ? ' · por jugar' : (incompleto ? ' · Pendiente carga de datos' : ' (' + x.resultado + ')');
+     return { value: String(x.j), label: 'F' + x.j + ' · ' + (x.local ? 'vs' : 'en') + ' ' + x.rival + estado + (tieneDatosCompletos(x.j) ? ' ✓' : '') };
+    })}></Select>
     <label className="cc-select-wrap" style={{ flex: 1, minWidth: '320px' }}>
      <span className="cc-select-label">ID o URL del partido</span>
      <input className="cc-input" type="text" inputMode="url" value={url} onChange={e => setUrl(e.target.value)} placeholder={urlSugerida || '15353054'}></input>
@@ -821,9 +833,9 @@ function SubirShotmaps() {
     )}
    </form>
    {msg && <p className={msg.tipo === 'ok' ? 'cc-card-note' : 'cc-login-error'} style={{ marginTop: '8px' }}>{msg.texto}</p>}
-   {api && partido && partido.resultado && !api.get(partido.j) && (
+   {api && partido && partido.resultado && !tieneDatosCompletos(partido.j) && (
     <p className="cc-card-note" style={{ marginTop: '8px' }}>
-     F{partido.j} está jugado, pero aún no tiene shotmap real empaquetado. Si Sofascore bloquea la descarga, queda pendiente hasta poder cargar el JSON real del evento.
+     F{partido.j} queda como <strong>Pendiente carga de datos</strong>: para entrar al análisis debe tener Team Stats de Wyscout y shotmap real de SofaScore.
     </p>
    )}
    {api && api.cola && (() => {
@@ -834,6 +846,7 @@ function SubirShotmaps() {
       <div className="cc-cola-head">
        <strong>Actualización automática por lotes</strong>
        <span className={'cc-pill ' + (pend.length ? 'cc-pill-pendiente' : 'cc-pill-v')} style={{ marginLeft: '8px' }}>{pend.length ? pend.length + ' fecha(s) pendiente(s): ' + pend.map(j => 'F' + j).join(', ') : 'Al día'}</span>
+       {!!pendientesCargaDatos.length && <span className="cc-pill cc-pill-pendiente" style={{ marginLeft: '8px' }}>{pendientesCargaDatos.map(x => 'F' + x.j).join(', ')} · Pendiente carga de datos</span>}
       </div>
       <p className="cc-card-note" style={{ margin: '6px 0 10px' }}>Para no gatillar el bloqueo temporal de Sofascore, la plataforma descarga los shotmaps pendientes en lotes de máximo 3 (espaciados 5 s) y, si la red rechaza la conexión, espera el intervalo elegido antes de reintentar automáticamente al abrir la app.</p>
       <div className="cc-filters" style={{ alignItems: 'flex-end' }}>
@@ -850,7 +863,7 @@ function SubirShotmaps() {
      </div>
     );
    })()}
-   <p className="cc-card-note" style={{ marginBottom: 0 }}>Si bloquea la conexión desde tu red, se conservan los {cuantos} shotmaps reales ya precargados y solo quedan pendientes las fechas jugadas sin JSON empaquetado.</p>
+   <p className="cc-card-note" style={{ marginBottom: 0 }}>Si bloquea la conexión desde tu red, se conservan los {cuantos} partidos completos ya precargados. Las fechas sin Wyscout + shotmap quedan como Pendiente carga de datos.</p>
   </Card>
  );
 }

@@ -660,28 +660,47 @@
     return fx.filter(function (m) { return m && m.resultado; });
   }
 
+  function tieneTeamStats(j) {
+    return !!(window.CC_DATA && (CC_DATA.partidos || []).some(function (p) {
+      return String(p.j) === String(j);
+    }));
+  }
+
   function tieneShotmap(j) {
     var d = datos[String(j)];
     return !!(d && Array.isArray(d.shots) && d.shots.length);
   }
 
+  function tieneDatosCompletos(j) {
+    return tieneTeamStats(j) && tieneShotmap(j);
+  }
+
+  function partidosConTeamStats() {
+    return partidosJugados().filter(function (m) { return tieneTeamStats(m.j); });
+  }
+
   function resumenShotmaps() {
-    var jugados = partidosJugados();
-    var cargados = jugados.filter(function (m) { return tieneShotmap(m.j); });
+    var jugados = partidosConTeamStats();
+    var todosJugados = partidosJugados();
+    var cargados = jugados.filter(function (m) { return tieneDatosCompletos(m.j); });
     var pendientes = jugados
       .filter(function (m) { return !tieneShotmap(m.j) && eventIdDe(m.j); })
+      .map(function (m) { return m.j; });
+    var pendientesCargaDatos = todosJugados
+      .filter(function (m) { return !tieneDatosCompletos(m.j); })
       .map(function (m) { return m.j; });
     return {
       totalJugados: jugados.length,
       cargados: cargados.length,
       pendientes: pendientes,
+      pendientesCargaDatos: pendientesCargaDatos,
       jugados: jugados
     };
   }
 
   function colaPendientes() {
     var out = [];
-    partidosJugados().forEach(function (m) {
+    partidosConTeamStats().forEach(function (m) {
       if (m && !tieneShotmap(m.j) && eventIdDe(m.j)) out.push(m.j);
     });
     return out;
@@ -694,7 +713,7 @@
     if (!forzar && ahora < (c.proximo || 0)) return Promise.resolve('en-espera');
     var pend = colaPendientes();
     if (!pend.length) {
-      c.ultimo = 'Al día: todas las fechas jugadas tienen shotmap.';
+      c.ultimo = 'Al día: todos los partidos con Team Stats tienen shotmap.';
       guardarCola(c); emitir();
       return Promise.resolve('al-dia');
     }

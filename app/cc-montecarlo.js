@@ -42,9 +42,20 @@
   }
 
   function tablaActual() {
-    var t = (window.CC_SOFA && CC_SOFA.tabla && CC_SOFA.tabla.length) ? CC_SOFA.tabla
-      : (window.CC_SOFA_SNAPSHOT && CC_SOFA_SNAPSHOT.tabla) || [];
-    return t;
+    var viva = (window.CC_SOFA && CC_SOFA.tabla && CC_SOFA.tabla.length) ? CC_SOFA.tabla : [];
+    var snapshot = (window.CC_SOFA_SNAPSHOT && CC_SOFA_SNAPSHOT.tabla) || [];
+    if (hayCargaDatosPendiente() && snapshot.length) return snapshot;
+    return viva.length ? viva : snapshot;
+  }
+
+  function hayCargaDatosPendiente() {
+    try {
+      return (CC_DATA.fixture || []).some(function (m) {
+        return m && m.resultado && !tieneDatosPartido(m.j);
+      });
+    } catch (e) {
+      return false;
+    }
   }
 
   // Nivel del plantel por equipo (players stats de Wyscout): promedio ponderado
@@ -120,11 +131,24 @@
     return f;
   }
 
+  function tieneDatosPartido(j) {
+    var hasStats = (CC_DATA.partidos || []).some(function (p) { return String(p.j) === String(j); });
+    var hasShot = !!(
+      (window.CC_SHOTMAPS_BUNDLE && window.CC_SHOTMAPS_BUNDLE[String(j)]) ||
+      (window.CC_SHOTMAPS && window.CC_SHOTMAPS.get && window.CC_SHOTMAPS.get(j))
+    );
+    return hasStats && hasShot;
+  }
+
+  function partidosDatosCompletos() {
+    return (CC_DATA.partidos || []).filter(function (p) { return tieneDatosPartido(p.j); });
+  }
+
   // Head-to-head de Colo-Colo: balance de goles vs cada rival (histórico Wyscout)
   function h2hColoColo() {
     var h = {};
     try {
-      (CC_DATA.fixture || []).forEach(function (m) {
+      partidosDatosCompletos().forEach(function (m) {
         if (!m.resultado) return;
         var p = m.resultado.split('-').map(Number);
         var gf = p[0], gc = p[1];
@@ -156,7 +180,7 @@
     var ccRest = [];
     try {
       (CC_DATA.fixture || []).forEach(function (m) {
-        if (!m.resultado && idx[m.rival] != null) ccRest.push({ rival: m.rival, local: !!m.local });
+        if (!tieneDatosPartido(m.j) && idx[m.rival] != null) ccRest.push({ rival: m.rival, local: !!m.local });
       });
     } catch (e) {}
     var CC = 'Colo-Colo';
