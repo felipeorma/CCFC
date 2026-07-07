@@ -856,7 +856,7 @@
     cargarDesdeUrl: function (j, url, partidoLocal) {
       var eventId = parseEventId(url);
       if (!eventId) {
-        return Promise.reject(new Error('No pude extraer el ID del partido. Pega el enlace de Sofascore (termina en #id:NNNNN) o la URL /event/NNN/shotmap.'));
+        return Promise.reject(new Error('No pude extraer el ID del partido. Pega solo el ID, una URL de Sofascore con #id:NNNNN, o una URL /event/NNN/shotmap.'));
       }
       var homeEsCC = !!partidoLocal;
       return sofaFetchAny('/event/' + eventId + '/shotmap').then(function (data) {

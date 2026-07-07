@@ -791,7 +791,7 @@ function SubirShotmaps() {
  const cargar = e => {
   e.preventDefault();
   if (!api || !partido) return;
-  if (!url.trim()) { setMsg({ tipo: 'error', texto: 'Pega la URL del partido.' }); return; }
+  if (!url.trim()) { setMsg({ tipo: 'error', texto: 'Pega la URL o el ID del partido.' }); return; }
   setCargando(true);
   setMsg(null);
   api.cargarDesdeUrl(partido.j, url.trim(), partido.local)
@@ -808,12 +808,12 @@ function SubirShotmaps() {
      {cuantos + ' de ' + totalJugados + ' partidos jugados con shotmap'}
     </span>
    </div>
-   <p className="cc-card-note">Pega la URL del partido y la plataforma descarga y arma el shotmap automáticamente. Ejemplo: <code>https://www.sofascore.com/football/match/colo-colo-huachipato/...#id:15352997</code></p>
+   <p className="cc-card-note">Pega el ID del partido o la URL de Sofascore y la plataforma descarga y arma el shotmap automáticamente. Ejemplos: <code>15353054</code> · <code>https://www.sofascore.com/api/v1/event/15353054</code></p>
    <form className="cc-filters" onSubmit={cargar}>
     <Select label="Partido" value={jSel} onChange={cambiarPartido} options={basePartidos.map(x => ({ value: String(x.j), label: 'F' + x.j + ' · ' + (x.local ? 'vs' : 'en') + ' ' + x.rival + (x.resultado ? ' (' + x.resultado + ')' : ' · por jugar') + (api && api.get(x.j) ? ' ✓' : '') }))}></Select>
     <label className="cc-select-wrap" style={{ flex: 1, minWidth: '320px' }}>
-     <span className="cc-select-label">URL del partido</span>
-     <input className="cc-input" type="url" value={url} onChange={e => setUrl(e.target.value)} placeholder={urlSugerida || 'https://www.sofascore.com/...#id:15352997'}></input>
+     <span className="cc-select-label">ID o URL del partido</span>
+     <input className="cc-input" type="text" inputMode="url" value={url} onChange={e => setUrl(e.target.value)} placeholder={urlSugerida || '15353054'}></input>
     </label>
     <button type="submit" className="cc-btn-primary" style={{ width: 'auto', alignSelf: 'flex-end' }} disabled={cargando}>{cargando ? 'Descargando…' : 'Cargar shotmap'}</button>
     {api && partido && api.get(partido.j) && (
