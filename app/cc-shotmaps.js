@@ -33,6 +33,9 @@
   var partidosSofa = {};       // j -> partido SofaScore
   var estado = 'cargando';     // cargando | ok | bloqueado
   var error = null;
+  var URLS_CONOCIDAS = {
+    '15': 'https://www.sofascore.com/football/match/cobresal-colo-colo/fnbsrnb#id:15353054'
+  };
 
   function emitir() {
     try {
@@ -304,13 +307,18 @@
   // Descarga directa (sin proxy): intenta los hosts públicos de Sofascore.
   function fetchDirecto(path) {
     var hosts = ['https://www.sofascore.com/api/v1', 'https://api.sofascore.com/api/v1'];
+    var ultimoError = null;
     function intentar(i) {
       if (i >= hosts.length) {
-        return Promise.reject(new Error('Sofascore no respondió desde el navegador (bloqueo CORS / anti-bot).'));
+        var msg = String((ultimoError && ultimoError.message) || '');
+        if (/HTTP (403|429)/.test(msg)) {
+          return Promise.reject(new Error('Sofascore bloqueó la consulta (HTTP ' + msg.match(/HTTP (403|429)/)[1] + ' / anti-bot). No se cargó el shotmap para no inventar datos; reintenta más tarde o sube el JSON real del evento.'));
+        }
+        return Promise.reject(new Error('Sofascore no respondió desde el navegador (bloqueo CORS / anti-bot). No se cargó el shotmap para no inventar datos.'));
       }
       return fetch(hosts[i] + path, { headers: { accept: 'application/json' } })
         .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-        .catch(function () { return intentar(i + 1); });
+        .catch(function (err) { ultimoError = err; return intentar(i + 1); });
     }
     return intentar(0);
   }
@@ -568,46 +576,20 @@
   function cargar() {
     leerCache();
     sembrarBundle();
+    sembrarPartidosFixture();
 
     if (Object.keys(partidosSofa).length || Object.keys(datos).length) {
       emitir();
     }
 
-    if (typeof window.ccSofaFetch !== 'function') {
-      estado = 'bloqueado';
-      error = 'No existe window.ccSofaFetch. Revisa que el archivo proxy/fetcher de SofaScore esté cargado antes de cc-shotmaps.js.';
-      emitir();
-      return;
-    }
-
-    estado = 'cargando';
+    // No recorremos todas las rondas de Sofascore al abrir la app: eso puede
+    // gatillar el bloqueo anti-bot. Los datos empaquetados y los eventId del
+    // snapshot alcanzan para mostrar lo existente y para que la cola intente
+    // solo los pendientes en lotes pequeños.
+    estado = 'ok';
     error = null;
+    guardarCache();
     emitir();
-
-    cargarEventosPorRondas(40)
-      .then(function (eventos) {
-        var partidos = guardarPartidosColoColo(eventos);
-
-        if (!partidos.length) {
-          throw new Error('No se encontraron partidos de Colo-Colo en el torneo ' + TORNEO + ' temporada ' + TEMPORADA);
-        }
-
-        guardarCache();
-        emitir();
-
-        return cargarShotmapsSecuencial(partidos);
-      })
-      .then(function () {
-        estado = 'ok';
-        guardarCache();
-        emitir();
-      })
-      .catch(function (err) {
-        estado = Object.keys(datos).length || Object.keys(partidosSofa).length ? 'ok' : 'bloqueado';
-        error = String((err && err.message) || err);
-        window.CC_SHOTMAPS.error = error;
-        emitir();
-      });
   }
 
   // ---------- Cola de actualización por lotes (anti-bloqueo) ----------
@@ -629,11 +611,78 @@
     try { return ((window.CC_SOFA_SNAPSHOT || {}).eventIds || {})[String(j)] || null; } catch (e) { return null; }
   }
 
-  function colaPendientes() {
-    var fx = (window.CC_DATA && CC_DATA.fixture) || [];
-    var out = [];
+  function urlConocidaDe(j, id) {
+    return URLS_CONOCIDAS[String(j)] || (id ? 'https://www.sofascore.com/event/' + id : '');
+  }
+
+  function matchUrlDe(j) {
+    var p = partidosSofa[String(j)];
+    if (p && p.matchUrl) return p.matchUrl;
+    var id = eventIdDe(j);
+    return urlConocidaDe(j, id);
+  }
+
+  function scoreDe(resultado, local) {
+    var m = String(resultado || '').match(/(\d+)\s*-\s*(\d+)/);
+    if (!m) return { homeScore: null, awayScore: null };
+    var a = Number(m[1]);
+    var b = Number(m[2]);
+    return local ? { homeScore: a, awayScore: b } : { homeScore: b, awayScore: a };
+  }
+
+  function sembrarPartidosFixture() {
+    var fx = (window.CC_DATA && (CC_DATA.fixture || CC_DATA.partidos)) || [];
     fx.forEach(function (m) {
-      if (m && m.resultado && !datos[String(m.j)] && eventIdDe(m.j)) out.push(m.j);
+      if (!m || m.j == null || partidosSofa[String(m.j)]) return;
+      var id = eventIdDe(m.j);
+      if (!id) return;
+      var score = scoreDe(m.resultado, !!m.local);
+      partidosSofa[String(m.j)] = {
+        j: m.j,
+        round: m.j,
+        eventId: id,
+        matchUrl: urlConocidaDe(m.j, id),
+        fecha: m.fecha || null,
+        status: m.resultado ? 'finished' : 'notstarted',
+        homeTeam: m.local ? 'Colo-Colo' : m.rival,
+        awayTeam: m.local ? m.rival : 'Colo-Colo',
+        homeScore: score.homeScore,
+        awayScore: score.awayScore,
+        homeEsCC: !!m.local,
+        local: !!m.local,
+        rival: m.rival || null
+      };
+    });
+  }
+
+  function partidosJugados() {
+    var fx = (window.CC_DATA && (CC_DATA.fixture || CC_DATA.partidos)) || [];
+    return fx.filter(function (m) { return m && m.resultado; });
+  }
+
+  function tieneShotmap(j) {
+    var d = datos[String(j)];
+    return !!(d && Array.isArray(d.shots) && d.shots.length);
+  }
+
+  function resumenShotmaps() {
+    var jugados = partidosJugados();
+    var cargados = jugados.filter(function (m) { return tieneShotmap(m.j); });
+    var pendientes = jugados
+      .filter(function (m) { return !tieneShotmap(m.j) && eventIdDe(m.j); })
+      .map(function (m) { return m.j; });
+    return {
+      totalJugados: jugados.length,
+      cargados: cargados.length,
+      pendientes: pendientes,
+      jugados: jugados
+    };
+  }
+
+  function colaPendientes() {
+    var out = [];
+    partidosJugados().forEach(function (m) {
+      if (m && !tieneShotmap(m.j) && eventIdDe(m.j)) out.push(m.j);
     });
     return out;
   }
@@ -739,8 +788,14 @@
     },
 
     cuantos: function () {
-      return Object.keys(datos).length;
+      return resumenShotmaps().cargados;
     },
+
+    resumen: resumenShotmaps,
+
+    eventId: eventIdDe,
+
+    matchUrl: matchUrlDe,
 
     // --- cola por lotes ---
     cola: function () {
