@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "data:player-actions": "node scripts/update-player-actions.mjs",
+    "data:sofascore-batch": "node scripts/update-player-actions.mjs --batch-size=3",
     "data:player-lineups": "node scripts/update-player-actions.mjs --lineups-only",
     "dev": "vite",
     "build": "npm run build:pages",

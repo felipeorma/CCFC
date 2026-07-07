@@ -275,6 +275,7 @@
     'Shotmaps por partido': 'Per-match shotmaps', 'ID o URL del partido': 'Match ID or URL', 'URL del partido': 'Match URL',
     'Cargar shotmap': 'Load shotmap', 'Logos del torneo y equipos': 'Tournament & team logos',
     'Actualización automática por lotes': 'Automatic batch update',
+    'Eventos espaciales': 'Spatial events', 'Pendiente backend': 'Backend pending',
     'Respaldo a siglas': 'Fallback to initials', 'URL del logo (PNG/SVG)': 'Logo URL (PNG/SVG)',
     'Guardar': 'Save', 'Catálogo de ligas y torneos por país': 'League & tournament catalog by country',
     'Base de datos interna': 'Internal database', 'CONMEBOL (Sudamérica)': 'CONMEBOL (South America)',

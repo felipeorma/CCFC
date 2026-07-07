@@ -129,10 +129,36 @@
     };
   }
 
+  function lineupBundlePorEvento(eventId) {
+    const bundle = window.CC_LINEUPS_BUNDLE || null;
+    if (!bundle) return null;
+    const match = Object.values(bundle).find(item => item && String(item.eventId) === String(eventId));
+    return match || null;
+  }
+
+  function lineupPlayerBundle(item, lado) {
+    return {
+      id: 'lineup:' + lado + ':' + norm(item.n),
+      nombre: item.n || 'Sin nombre',
+      posicion: item.p || '',
+      dorsal: item.d || '',
+      minutos: item.min != null ? item.min : null,
+      titular: item.min == null ? null : item.min >= 45,
+      lado
+    };
+  }
+
   function getLineups(eventId, homeEsCC) {
     const bundled = window.CC_ACTIONS_BUNDLE && window.CC_ACTIONS_BUNDLE[String(eventId)];
-    if (bundled && Array.isArray(bundled.cc) && Array.isArray(bundled.rv)) {
+    if (bundled && Array.isArray(bundled.cc) && Array.isArray(bundled.rv) && (bundled.cc.length || bundled.rv.length)) {
       return Promise.resolve({ cc: bundled.cc, rv: bundled.rv });
+    }
+    const lineupBundle = lineupBundlePorEvento(eventId);
+    if (lineupBundle && Array.isArray(lineupBundle.cc) && Array.isArray(lineupBundle.rv)) {
+      return Promise.resolve({
+        cc: lineupBundle.cc.map(p => lineupPlayerBundle(p, 'cc')),
+        rv: lineupBundle.rv.map(p => lineupPlayerBundle(p, 'rv'))
+      });
     }
     return fetchCached('lineups:' + eventId, '/event/' + eventId + '/lineups').then(data => {
       const homeSide = homeEsCC ? 'cc' : 'rv';
@@ -158,10 +184,12 @@
   }
 
   function getPlayerActions(eventId, player, shots) {
-    if (String(player.id).startsWith('shot:')) {
+    if (String(player.id).startsWith('shot:') || String(player.id).startsWith('lineup:')) {
       const shotsOnly = mergePlayerShots([], player, shots);
       shotsOnly.ccParcial = true;
-      shotsOnly.ccError = 'No se pudo cargar el detalle completo del partido.';
+      shotsOnly.ccError = String(player.id).startsWith('lineup:')
+        ? 'Acciones espaciales pendientes de carga backend. La alineación y estadísticas del jugador sí están en la base.'
+        : 'No se pudo cargar el detalle completo del partido.';
       return Promise.resolve(shotsOnly);
     }
     const bundled = window.CC_ACTIONS_BUNDLE && window.CC_ACTIONS_BUNDLE[String(eventId)];
@@ -173,6 +201,12 @@
         time: item.t
       }, item.c)).filter(Boolean);
       return Promise.resolve(mergePlayerShots(events, player, shots));
+    }
+    if (bundled) {
+      const shotsOnly = mergePlayerShots([], player, shots);
+      shotsOnly.ccParcial = true;
+      shotsOnly.ccError = 'Acciones espaciales pendientes de carga backend. No se descargan desde el navegador para evitar bloqueos de SofaScore.';
+      return Promise.resolve(shotsOnly);
     }
     return fetchCached('actions:' + eventId + ':' + player.id,
       '/event/' + eventId + '/player/' + player.id + '/rating-breakdown').then(data => {

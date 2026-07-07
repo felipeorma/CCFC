@@ -1,0 +1,79 @@
+name: SofaScore Backend Batch
+
+on:
+  workflow_dispatch:
+    inputs:
+      batch_size:
+        description: "Partidos a intentar en este lote"
+        required: false
+        default: "3"
+      match:
+        description: "Jornada específica opcional, ejemplo: 13"
+        required: false
+        default: ""
+  schedule:
+    - cron: "17 */3 * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sofascore-backend-batch
+  cancel-in-progress: false
+
+jobs:
+  update-sofascore:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Check Chrome
+        run: google-chrome --version
+
+      - name: Download SofaScore player actions
+        env:
+          CHROME_PATH: /usr/bin/google-chrome
+          BATCH_SIZE: ${{ github.event.inputs.batch_size || '3' }}
+          MATCH: ${{ github.event.inputs.match || '' }}
+        run: |
+          CMD=(npm run data:player-actions -- --batch-size="$BATCH_SIZE" --sleep-ms=5000 --timeout-ms=15000)
+          if [ -n "$MATCH" ]; then
+            CMD+=(--match="$MATCH")
+          fi
+          "${CMD[@]}"
+
+      - name: Build site
+        run: npm run build
+
+      - name: Commit database updates
+        id: commit
+        run: |
+          if git diff --quiet app/cc-actions-data.js app/cc-lineups-data.js app/cc-shotmaps-data.js; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No SofaScore database changes."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add app/cc-actions-data.js app/cc-lineups-data.js app/cc-shotmaps-data.js
+          git commit -m "Update SofaScore backend data [skip ci]"
+          git push origin HEAD:main
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy GitHub Pages
+        if: steps.commit.outputs.changed == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run deploy

@@ -1278,8 +1278,13 @@ function PageConfig({ usuario }) {
        <div><span>Tabla y fixture</span><strong>{(window.CC_SOFA_SNAPSHOT && CC_SOFA_SNAPSHOT.fecha) ? 'Instantánea del ' + CC_SOFA_SNAPSHOT.fecha : '—'}</strong></div>
        <div><span>Shotmaps reales</span><strong>{window.CC_SHOTMAPS && CC_SHOTMAPS.cuantos ? CC_SHOTMAPS.cuantos() + ' partidos' : (window.CC_SHOTMAPS_BUNDLE ? Object.keys(CC_SHOTMAPS_BUNDLE).length + ' partidos' : '—')}</strong></div>
        <div><span>Estadísticas por jugador</span><strong>{window.CC_LINEUPS_BUNDLE ? Object.keys(CC_LINEUPS_BUNDLE).length + ' partidos' : '—'}</strong></div>
+       <div><span>Eventos espaciales</span><strong>{(() => {
+        const bundle = window.CC_ACTIONS_BUNDLE || {};
+        const n = Object.values(bundle).filter(m => m && m.actions && Object.values(m.actions).some(arr => Array.isArray(arr) && arr.length)).length;
+        return n ? n + ' partidos' : 'Pendiente backend';
+       })()}</strong></div>
       </div>
-      <p className="cc-card-note">Descargados y empaquetados en la plataforma (no dependen de conexión). El fixture y los shotmaps se administran aquí.</p>
+      <p className="cc-card-note">Descargados y empaquetados en la plataforma (no dependen de conexión). Las acciones completas de jugadores se actualizan por lotes backend; si faltan, no se inventan coordenadas.</p>
      </Card>
      <FixtureConfig usuario={usuario}></FixtureConfig>
      <SubirShotmaps></SubirShotmaps>
