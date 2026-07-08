@@ -760,8 +760,9 @@
     return paso(0);
   }
 
-  // Intento automático discreto al abrir la app (respeta el enfriamiento)
-  setTimeout(function () { try { procesarCola(false); } catch (e) {} }, 9000);
+  // Sin intentos automáticos al abrir la app: los reintentos forzados
+  // re-gatillaban el bloqueo de la fuente. La descarga es solo manual
+  // (Configuración → Datos Sofascore).
 
   window.CC_SHOTMAPS = {
     get: function (j) {

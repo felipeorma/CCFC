@@ -69,25 +69,53 @@
     }
   };
 
-  function fetchJson(path) {
-    var directas = [];
+  // Rutas hacia la API: proxy propio → directas → varios proxies CORS
+  // públicos (cada uno sale con una IP distinta). Recuerda la última ruta
+  // que funcionó y parte por ella; timeout de 12 s por intento para saltar
+  // rápido las rutas caídas.
+  var RUTA_OK_KEY = 'cc_sofa_ruta_ok_v1';
+  function rutasDe(path) {
+    var www = 'https://www.sofascore.com/api/v1' + path;
+    var api = 'https://api.sofascore.com/api/v1' + path;
+    var rutas = [];
     var px = proxyUrl();
-    if (px) directas.push(px + '?path=' + encodeURIComponent(path));
-    directas.push(
-      'https://www.sofascore.com/api/v1' + path,
-      'https://api.sofascore.com/api/v1' + path,
-      // Proxies CORS públicos: última opción
-      'https://corsproxy.io/?url=' + encodeURIComponent('https://www.sofascore.com/api/v1' + path),
-      'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://api.sofascore.com/api/v1' + path)
+    if (px) rutas.push(px + '?path=' + encodeURIComponent(path));
+    rutas.push(
+      www,
+      api,
+      'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(www),
+      'https://api.allorigins.win/raw?url=' + encodeURIComponent(www),
+      'https://corsproxy.io/?url=' + encodeURIComponent(www),
+      'https://api.allorigins.win/raw?url=' + encodeURIComponent(api)
     );
+    return rutas;
+  }
+  function fetchJson(path) {
+    var rutas = rutasDe(path);
+    var ini = 0;
+    try { ini = Number(localStorage.getItem(RUTA_OK_KEY)) || 0; } catch (e) {}
+    if (ini < 0 || ini >= rutas.length) ini = 0;
     var i = 0;
     function intento() {
-      if (i >= directas.length) return Promise.reject(new Error('sin respuesta'));
-      var url = directas[i++];
-      return fetch(url).then(function (r) {
-        if (!r.ok) throw new Error('HTTP ' + r.status);
-        return r.json();
-      }).catch(function () { return intento(); });
+      if (i >= rutas.length) return Promise.reject(new Error('sin respuesta'));
+      var idx = (ini + i) % rutas.length;
+      i++;
+      var ctl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+      var timer = ctl ? setTimeout(function () { try { ctl.abort(); } catch (e) {} }, 12000) : null;
+      return fetch(rutas[idx], ctl ? { signal: ctl.signal } : undefined)
+        .then(function (r) {
+          if (timer) clearTimeout(timer);
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          return r.json();
+        })
+        .then(function (j) {
+          try { localStorage.setItem(RUTA_OK_KEY, String(idx)); } catch (e) {}
+          return j;
+        })
+        .catch(function () {
+          if (timer) clearTimeout(timer);
+          return intento();
+        });
     }
     return intento();
   }

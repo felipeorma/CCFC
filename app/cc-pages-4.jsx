@@ -1084,31 +1084,6 @@ function SubirShotmaps() {
      F{partido.j} queda como <strong>Pendiente carga de datos</strong>: para entrar al análisis debe tener Team Stats de Wyscout y shotmap real de SofaScore.
     </p>
    )}
-   {api && api.cola && (() => {
-    const c = api.cola();
-    const pend = c.pendientes || [];
-    return (
-     <div className="cc-cola-box">
-      <div className="cc-cola-head">
-       <strong>Actualización automática por lotes</strong>
-       <span className={'cc-pill ' + (pend.length ? 'cc-pill-pendiente' : 'cc-pill-v')} style={{ marginLeft: '8px' }}>{pend.length ? pend.length + ' fecha(s) pendiente(s): ' + pend.map(j => 'F' + j).join(', ') : 'Al día'}</span>
-       {!!pendientesCargaDatos.length && <span className="cc-pill cc-pill-pendiente" style={{ marginLeft: '8px' }}>{pendientesCargaDatos.map(x => 'F' + x.j).join(', ')} · Pendiente carga de datos</span>}
-      </div>
-      <p className="cc-card-note" style={{ margin: '6px 0 10px' }}>Para no gatillar el bloqueo temporal de Sofascore, la plataforma descarga los shotmaps pendientes en lotes de máximo 3 (espaciados 5 s) y, si la red rechaza la conexión, espera el intervalo elegido antes de reintentar automáticamente al abrir la app.</p>
-      <div className="cc-filters" style={{ alignItems: 'flex-end' }}>
-       <Select label="Reintentar cada" value={String(c.horas)} onChange={v => api.setColaHoras(v)} options={[{ value: '1', label: '1 hora' }, { value: '3', label: '3 horas' }, { value: '6', label: '6 horas' }]}></Select>
-       <button type="button" className="cc-btn-ghost" style={{ alignSelf: 'flex-end' }} disabled={c.procesando || !pend.length}
-        onClick={() => { setMsg(null); api.intentarCola().then(ok => { if (typeof ok === 'number' && ok > 0) ccAudit('descargar', 'Shotmaps por lote', ok + ' fecha(s) actualizadas desde Sofascore'); setMsg({ tipo: typeof ok === 'number' && ok > 0 ? 'ok' : 'error', texto: (api.cola().ultimo || 'Intento terminado.') }); }); }}>
-        {c.procesando ? 'Procesando lote…' : 'Intentar ahora'}
-       </button>
-       <span className="cc-card-note" style={{ margin: 0 }}>
-        {c.ultimo ? 'Último intento: ' + c.ultimo + '. ' : ''}
-        {pend.length && c.proximo > Date.now() ? 'Próximo intento automático: ' + new Date(c.proximo).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' }) + '.' : ''}
-       </span>
-      </div>
-     </div>
-    );
-   })()}
    <p className="cc-card-note" style={{ marginBottom: 0 }}>Si bloquea la conexión desde tu red, se conservan los {cuantos} partidos completos ya precargados. Las fechas sin Wyscout + shotmap quedan como Pendiente carga de datos.</p>
   </Card>
  );

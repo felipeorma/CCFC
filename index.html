@@ -316,6 +316,20 @@ a.cc-btn-ghost { text-decoration: none; }
 .cc-acc-chip.activo { background: var(--rojo); border-color: var(--rojo); color: #fff; }
 .cc-acc-chip.activo strong { color: #fff; }
 .cc-acc-chip strong { font-family: var(--font-display); font-size: 14px; color: var(--rojo); }
+/* Acciones de jugador · panel de estadísticas reales */
+.cc-acc-rating { display: inline-flex; align-items: center; justify-content: center; min-width: 38px; height: 26px; padding: 0 8px; border-radius: 8px; background: #141414; color: #fff; font-weight: 800; font-size: 13px; margin-left: 8px; }
+.cc-acc-rating.alto { background: var(--exito); }
+.cc-acc-rating.bajo { background: var(--rojo); }
+.cc-acc-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin-top: 14px; }
+.cc-acc-statgroup { border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; background: var(--surface-2); }
+.cc-acc-statgroup h4 { margin: 0 0 8px; font-size: 11px; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; color: var(--ink-3); }
+.cc-acc-statrow { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; align-items: center; padding: 5px 0; border-top: 1px solid var(--border); }
+.cc-acc-statrow:first-of-type { border-top: none; }
+.cc-acc-statlabel { font-size: 12.5px; color: var(--ink-2); }
+.cc-acc-statval { font-size: 13px; font-weight: 700; color: var(--ink); }
+.cc-acc-statval em { font-style: normal; color: var(--ink-3); font-weight: 600; font-size: 12px; }
+.cc-acc-statbar { grid-column: 1 / -1; height: 5px; border-radius: 3px; background: var(--bar-idle); overflow: hidden; }
+.cc-acc-statbar span { display: block; height: 100%; background: var(--rojo); border-radius: 3px; }
 .cc-acc-pitch-wrap { width: 100%; max-width: 760px; margin: 0 auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 10px; box-shadow: 0 1px 3px rgba(20,20,20,0.05); }
 .cc-actionpitch { width: 100%; height: auto; display: block; }
 .cc-acc-dir { font-size: 2.6px; fill: #9BB09B; font-weight: 700; letter-spacing: 0.12em; }

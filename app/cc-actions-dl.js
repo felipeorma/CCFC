@@ -216,7 +216,7 @@
           } catch (e2) {
             item.errors[pid] = jug.nombre + ': ' + String((e2 && e2.message) || e2);
           }
-          await espera(jitter(650));
+          await espera(jitter(950));
         }
 
         item.updatedAt = new Date().toISOString();
@@ -228,7 +228,7 @@
         estado.msg = 'F' + p.j + ' lista: ' + cuentaActions(item) + ' jugadores con eventos' +
           (faltan ? ' · ' + faltan + ' con error (reintenta luego)' : '');
         emitir();
-        if (pi < cola.length - 1) await espera(jitter(3500));
+        if (pi < cola.length - 1) await espera(jitter(6000));
       }
       var quedan = pendientes().length;
       estado.msg = quedan
