@@ -466,7 +466,7 @@ function ccLoadEscuelas() {
 function PageCaptacion({ usuario }) {
  const ref = p6Ref(null);
  const rol = (() => { try { return window.ccRolDe ? window.ccRolDe(usuario) : null; } catch (e) { return null; } })();
- const puedeEditar = rol === 'Administrador';
+ const puedeEditar = rol === 'Administrador' || rol === 'Editor';
  const [escuelas, setEscuelas] = p6State(() => ccLoadEscuelas());
  const [sel, setSel] = p6State(null);   // sigla seleccionada
  const [editIdx, setEditIdx] = p6State(null);
@@ -594,7 +594,7 @@ function PageCaptacion({ usuario }) {
    <StatCard label="Niños y niñas" value={totales.ninos.toLocaleString('es-CL')}></StatCard>
    </div>
 
-   {!puedeEditar && <p className="cc-card-note">Tu rol ({rol || 'Visita'}) es de solo lectura en Captación.</p>}
+   {!puedeEditar && <p className="cc-card-note">Tu rol ({rol || 'Visita'}) es de solo lectura en Captación. La edición está disponible para roles Editor y Administrador.</p>}
 
    {puedeEditar && (
     <Card className="cc-pad cc-capt-admin">

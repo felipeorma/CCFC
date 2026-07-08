@@ -4,3 +4,5 @@ dist/
 build.log
 .env
 .env.*
+.cc-chrome-profile/
+scripts/__pycache__/

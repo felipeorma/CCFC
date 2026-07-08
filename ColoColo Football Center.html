@@ -952,6 +952,29 @@ a.cc-btn-ghost { text-decoration: none; }
 .cc-dt-stars { display: inline-flex; gap: 2px; }
 .cc-star { border: none; background: transparent; padding: 0 1px; cursor: pointer; font-size: 20px; line-height: 1; color: var(--bar-idle); transition: color 0.1s, transform 0.1s; }
 .cc-star.on { color: #F5C542; }
+/* Configuración · comando de descarga de acciones */
+.cc-cmd-box { display: flex; align-items: center; gap: 10px; margin: 10px 0 0; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: #141414; }
+.cc-cmd-box code { flex: 1; font-size: 12px; color: #7ee787; font-family: 'SF Mono', Menlo, Consolas, monospace; word-break: break-all; line-height: 1.45; }
+.cc-cmd-box-sec { background: var(--surface-2); }
+.cc-cmd-box-sec code { color: var(--ink-2); }
+.cc-cmd-btn { width: auto; white-space: nowrap; flex: none; padding: 8px 12px; font-size: 12.5px; }
+.cc-dl-status { display: flex; align-items: center; gap: 9px; margin-top: 12px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-2); font-size: 13px; color: var(--ink-2); font-weight: 600; }
+.cc-dl-status.activo { border-color: color-mix(in srgb, var(--rojo) 35%, var(--border)); }
+.cc-dl-spin { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--bar-idle); border-top-color: var(--rojo); animation: ccdlspin 0.8s linear infinite; flex: none; }
+@keyframes ccdlspin { to { transform: rotate(360deg); } }
+.cc-dl-toggle { margin-top: 12px; font-size: 12px; }
+.cc-pill-gris { background: var(--surface-2); color: var(--ink-3); border: 1px solid var(--border); }
+.cc-dl-lista { display: flex; flex-direction: column; margin-top: 12px; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+.cc-dl-row { display: grid; grid-template-columns: 44px 1fr auto auto; gap: 10px; align-items: center; padding: 8px 12px; border-top: 1px solid var(--border); background: var(--surface); }
+.cc-dl-row:first-child { border-top: none; }
+.cc-dl-row.ok { background: color-mix(in srgb, var(--exito) 5%, var(--surface)); }
+.cc-dl-row-j { font-weight: 800; font-size: 12.5px; color: var(--ink); }
+.cc-dl-row-rival { font-size: 13px; color: var(--ink-2); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cc-dl-add { margin-top: 14px; padding: 12px 14px; border: 1px dashed var(--border); border-radius: 12px; background: var(--surface-2); }
+.cc-dl-add-grid { display: grid; grid-template-columns: 1fr 220px auto; gap: 10px; align-items: end; margin-top: 6px; }
+.cc-dl-add-btn { width: auto; white-space: nowrap; }
+.cc-dl-jsel { width: 100%; text-align: left; padding: 9px 8px; }
+@media (max-width: 900px) { .cc-dl-add-grid { grid-template-columns: 1fr; } }
 .cc-star:hover:not(:disabled) { transform: scale(1.15); }
 .cc-star:disabled { cursor: default; }
 .cc-dt-al-car { border-color: color-mix(in srgb, var(--rojo) 35%, var(--border)); background: color-mix(in srgb, var(--rojo) 8%, transparent); color: var(--rojo); }
@@ -1784,6 +1807,7 @@ body.cap-mode .cc-topbar-title h1 { font-size: 19px !important; white-space: now
 <script src="app/cc-lineups-data.js"></script>
 <script src="app/cc-shotmaps.js"></script>
 <script src="app/cc-actions-data.js"></script>
+<script src="app/cc-actions-dl.js"></script>
 <script type="text/babel" src="app/cc-actionmap.jsx"></script>
 <script type="text/babel" src="app/tweaks-panel.jsx"></script>
 <script type="text/babel" src="app/cc-charts.jsx"></script>

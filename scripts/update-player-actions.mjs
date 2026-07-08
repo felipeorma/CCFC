@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import vm from 'node:vm';
@@ -14,7 +14,13 @@ const requestTimeoutMs = numberArg(args['timeout-ms'], 15000);
 const onlyMissing = !args.all;
 const chrome = process.env.CHROME_PATH || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const port = numberArg(args.port, 9237);
-const profile = await mkdtemp(path.join(tmpdir(), 'cc-sofa-actions-'));
+const headless = !!args.headless;                     // por defecto Chrome VISIBLE: el modo invisible gatilla el 403 anti-bot
+const warmupMs = numberArg(args['warmup-ms'], 9000);  // espera inicial para que SofaScore cargue y deje cookies
+// Perfil persistente: conserva las cookies entre corridas (una vez aceptado,
+// deja de bloquear). Pasar --fresh-profile para partir con uno limpio.
+const persistentProfile = path.join(root, '.cc-chrome-profile');
+const profile = args['fresh-profile'] ? await mkdtemp(path.join(tmpdir(), 'cc-sofa-actions-')) : persistentProfile;
+await mkdir(profile, { recursive: true }).catch(() => {});
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 function parseArgs(argv) {
@@ -107,15 +113,18 @@ if (!pendingMatches.length) {
   process.exit(0);
 }
 
-const child = spawn(chrome, [
-  '--headless=new',
+const chromeArgs = [
   '--no-sandbox',
   '--disable-gpu',
   '--disable-dev-shm-usage',
+  '--disable-blink-features=AutomationControlled',
+  '--window-size=1240,940',
   `--remote-debugging-port=${port}`,
   `--user-data-dir=${profile}`,
   'https://www.sofascore.com/'
-], { stdio: ['ignore', 'ignore', 'pipe'] });
+];
+if (headless) chromeArgs.unshift('--headless=new');
+const child = spawn(chrome, chromeArgs, { stdio: ['ignore', 'ignore', 'pipe'] });
 
 let stderr = '';
 child.stderr.on('data', chunk => { stderr += chunk.toString(); });
@@ -137,6 +146,10 @@ try {
 
   const bundle = structuredClone(existingBundle);
   const startedAt = new Date().toISOString();
+  if (warmupMs > 0) {
+    console.log(`Chrome ${headless ? 'invisible' : 'VISIBLE'} abierto en sofascore.com · esperando ${Math.round(warmupMs / 1000)}s a que cargue (no cierres esa ventana)…`);
+    await wait(warmupMs);
+  }
   console.log(`Procesando ${pendingMatches.length}/${matches.length} partido(s) · lote ${batchSize} · inicio ${startedAt}`);
 
   for (let i = 0; i < pendingMatches.length; i++) {
@@ -217,7 +230,7 @@ try {
     new Promise(resolve => child.once('exit', resolve)),
     wait(3000)
   ]);
-  await rm(profile, { recursive: true, force: true }).catch(() => {});
+  if (profile !== persistentProfile) await rm(profile, { recursive: true, force: true }).catch(() => {});
 }
 
 function knownMatches(win) {

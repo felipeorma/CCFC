@@ -308,14 +308,29 @@ function DTFisico({ plantel, puedeEditar }) {
 // ---------- Pestaña Wellness (historial por fecha) ----------
 // Calificación 1–5 estrellas (1 bajo · 5 mejor). Clic en la misma estrella la borra.
 function DTStars({ value, onChange, disabled }) {
+ const val = Number(value) || 0;
  return (
-  <span className="cc-dt-stars" role="radiogroup" aria-label="Calificación de 1 a 5 estrellas">
+  <span className={'cc-dt-stars' + (val ? '' : ' empty')} role="radiogroup" aria-label="Calificación de 1 a 5 estrellas">
    {[1, 2, 3, 4, 5].map(n => (
     <button key={n} type="button" disabled={disabled}
-     className={'cc-star' + (n <= (value || 0) ? ' on' : '')}
+     className={'cc-dt-star' + (n <= val ? ' on' : '')}
+     role="radio" aria-checked={val === n}
      title={n + ' de 5'}
-     onClick={() => onChange(value === n ? null : n)}>★</button>
+     onClick={() => onChange(val === n ? null : n)}>
+      <Icon name="estrella" size={21}></Icon>
+     </button>
    ))}
+   {!val && <span className="cc-dt-stars-empty">Sin marcar</span>}
+  </span>
+ );
+}
+
+function DTMiniStars({ value, label }) {
+ const val = Number(value) || 0;
+ if (!val) return <span className="cc-falta">—</span>;
+ return (
+  <span className="cc-dt-mini-stars" title={label + ': ' + val + ' de 5'}>
+   {[1, 2, 3, 4, 5].filter(n => n <= val).map(n => <Icon key={n} name="estrella" size={11}></Icon>)}
   </span>
  );
 }
@@ -416,7 +431,7 @@ function DTWellness({ plantel, puedeEditar }) {
                 <div key={r.fecha} className={'cc-dt-hist-item' + (editando === r.fecha ? ' edit' : '')}>
                  <span className="cc-dt-fecha">{r.fecha}</span>
                  <span className="cc-dt-hist-vals">
-                  {CC_DT.WELL_ITEMS.map(it => <em key={it.k} title={it.label}>{it.label.slice(0, 3)} {r[it.k] ? r[it.k] + '★' : '—'}</em>)}
+                  {CC_DT.WELL_ITEMS.map(it => <em key={it.k} title={it.label}><span>{it.label.slice(0, 3)}</span> <DTMiniStars value={r[it.k]} label={it.label}></DTMiniStars></em>)}
                  </span>
                  <span className="cc-dt-cond-num" style={{ color: dtWellColor(sc) }}>{sc != null ? sc : '—'}</span>
                  {puedeEditar && (

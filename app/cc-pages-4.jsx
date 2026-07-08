@@ -41,6 +41,20 @@ function ccLeerInformes() {
  } catch (e) {}
  return [];
 }
+function ccPdfHref(r) {
+ if (!r) return '';
+ const href = r.pdfUrl || r.pdfData || r.pdfHref || r.pdfLink || r.pdf;
+ if (!href) return '';
+ return /^(https?:|data:application\/pdf|blob:)/i.test(href) ? href : '';
+}
+function ccPdfNombre(r) {
+ const n = (r && (r.pdfNombre || r.pdfName || r.pdf)) || 'Informe PDF';
+ return /^data:/i.test(n) ? 'Informe PDF' : n;
+}
+function ccPdfCorto(r) {
+ const n = ccPdfNombre(r);
+ return n.length > 22 ? n.slice(0, 20) + '…' : n;
+}
 
 // Extracción "mejor esfuerzo" de la ficha de Transfermarkt vía proxy CORS público
 // (el navegador no puede llamar a transfermarkt.es directamente por CORS/anti-bot).
@@ -157,13 +171,14 @@ function CatalogoPicker({ value, onChange }) {
 function FormInforme({ onGuardar, onCancelar, inicial }) {
  const base = {
   jugador: '', club: CC_DATA.equipos[0].nombre, posicion: 'CF', edad: 20,
-  partido: '', video: '', pdf: '', fortalezas: '', debilidades: '',
+  partido: '', video: '', pdf: '', pdfUrl: '', pdfSize: 0, fortalezas: '', debilidades: '',
   transfermarkt: '', liga: '', fotoUrl: '', escudoUrl: '', ligaUrl: '',
   recomendacion: 'Seguir observando', prioridad: 'Media',
   ratings: { 'Técnica': 3, 'Táctica': 3, 'Física': 3, 'Mental': 3 }
  };
  const [f, setF] = p4State(() => inicial ? Object.assign({}, base, inicial) : base);
  const [tmEstado, setTmEstado] = p4State(null); // null | 'cargando' | 'ok' | 'error'
+ const [pdfEstado, setPdfEstado] = p4State(null); // null | 'leyendo' | 'ok' | 'error'
  const set = (k, v) => setF(prev => Object.assign({}, prev, { [k]: v }));
  const setRating = (k, v) => setF(prev => Object.assign({}, prev, { ratings: Object.assign({}, prev.ratings, { [k]: v }) }));
  const posiciones = [...new Set(CC_DATA.jugadores.map(j => j.posicion))].filter(p => p && p !== '—').sort();
@@ -182,6 +197,19 @@ function FormInforme({ onGuardar, onCancelar, inicial }) {
    }));
    setTmEstado(d.fotoUrl || d.escudoUrl || d.liga ? 'ok' : 'error');
   } catch (e) { setTmEstado('error'); }
+ };
+
+ const cargarPdf = e => {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+  setPdfEstado('leyendo');
+  const fr = new FileReader();
+  fr.onload = () => {
+   setF(prev => Object.assign({}, prev, { pdf: file.name, pdfUrl: fr.result, pdfSize: file.size }));
+   setPdfEstado('ok');
+  };
+  fr.onerror = () => setPdfEstado('error');
+  fr.readAsDataURL(file);
  };
 
  const enviar = e => {
@@ -247,14 +275,24 @@ function FormInforme({ onGuardar, onCancelar, inicial }) {
      </label>
      <label className="cc-select-wrap">
       <span className="cc-select-label">Link de video (YouTube,…)</span>
-      <input className="cc-input" type="url" value={f.video} onChange={e => set('video', e.target.value)} placeholder="https://…"></input>
+     <input className="cc-input" type="url" value={f.video} onChange={e => set('video', e.target.value)} placeholder="https://…"></input>
      </label>
      <label className="cc-select-wrap">
       <span className="cc-select-label">Adjuntar PDF</span>
       <input
        className="cc-input cc-input-file" type="file" accept="application/pdf"
-       onChange={e => set('pdf', e.target.files && e.target.files[0] ? e.target.files[0].name : '')}
+       onChange={cargarPdf}
       ></input>
+      {f.pdf && (
+       <span className="cc-pdf-form-status">
+        {ccPdfHref(f)
+         ? <a href={ccPdfHref(f)} target="_blank" rel="noopener noreferrer"><Icon name="pdf" size={12}></Icon> {ccPdfCorto(f)}</a>
+         : <span><Icon name="pdf" size={12}></Icon> {ccPdfCorto(f)}</span>}
+        {pdfEstado === 'leyendo' && <em>Leyendo PDF…</em>}
+        {pdfEstado === 'ok' && <em>PDF listo para ver o descargar.</em>}
+        {pdfEstado === 'error' && <em className="cc-falta">No se pudo leer el PDF.</em>}
+       </span>
+      )}
      </label>
      <Select label="Recomendación" value={f.recomendacion} onChange={v => set('recomendacion', v)} options={['Fichar', 'Seguir observando', 'Descartar']}></Select>
      <Select label="Prioridad" value={f.prioridad} onChange={v => set('prioridad', v)} options={['Alta', 'Media', 'Baja']}></Select>
@@ -390,14 +428,14 @@ function PageScouting({ usuario }) {
    <PageHeader
     icon="scouting" title="Informes de Scouting"
     subtitle="Seguimiento de jugadores objetivo · elaborados por el área de scouting"
-    right={
+    right={puedeEditar ? (
      <button className="cc-btn-primary" style={{ width: 'auto' }} onClick={() => setCreando(!creando)}>
       <Icon name="mas" size={15}></Icon> Nuevo informe
      </button>
-    }
+    ) : null}
    ></PageHeader>
 
-   {creando && <FormInforme onGuardar={guardar} onCancelar={() => setCreando(false)}></FormInforme>}
+   {creando && puedeEditar && <FormInforme onGuardar={guardar} onCancelar={() => setCreando(false)}></FormInforme>}
 
    <Card className="cc-pad cc-filters">
     <Select label="Recomendación" value={filtroRec} onChange={setFiltroRec} options={recs}></Select>
@@ -452,11 +490,23 @@ function PageScouting({ usuario }) {
           <Icon name="video" size={12}></Icon> Video
          </a>
         )}
-        {r.pdf && (
-         <span className="cc-pill cc-pill-pendiente" title={r.pdf}>
-          <Icon name="pdf" size={12}></Icon> {r.pdf.length > 22 ? r.pdf.slice(0, 20) + '…' : r.pdf}
-         </span>
-        )}
+        {r.pdf && (() => {
+         const pdfHref = ccPdfHref(r);
+         return pdfHref ? (
+          <React.Fragment>
+           <a className="cc-pill cc-pill-link" href={pdfHref} target="_blank" rel="noopener noreferrer" title={'Ver ' + ccPdfNombre(r)}>
+            <Icon name="pdf" size={12}></Icon> Ver PDF
+           </a>
+           <a className="cc-pill cc-pill-link cc-pill-icon" href={pdfHref} download={ccPdfNombre(r)} title={'Descargar ' + ccPdfNombre(r)}>
+            <Icon name="descargar" size={12}></Icon> Descargar
+           </a>
+          </React.Fragment>
+         ) : (
+          <span className="cc-pill cc-pill-pendiente" title="Este informe solo tiene el nombre del archivo. Vuelve a adjuntar el PDF para poder verlo o descargarlo.">
+           <Icon name="pdf" size={12}></Icon> {ccPdfCorto(r)}
+          </span>
+         );
+        })()}
         {r.transfermarkt && (
          <a className="cc-pill cc-pill-link" href={r.transfermarkt} target="_blank" rel="noopener noreferrer">
           <Icon name="buscar" size={12}></Icon> Transfermarkt
@@ -748,6 +798,114 @@ function GestorDatos({ temporada }) {
     )}
    </Card>
   </React.Fragment>
+ );
+}
+
+// Acciones por jugador: descarga DESDE LA PLATAFORMA (misma vía que la
+// tabla y los shotmaps). Lista por partido con estado, descarga individual,
+// alta de partidos nuevos por link + jornada, y export del archivo.
+function AccionesScript() {
+ const [, setTick] = p4State(0);
+ React.useEffect(() => {
+  const f = () => setTick(t => t + 1);
+  window.addEventListener('cc-actions-dl', f);
+  return () => window.removeEventListener('cc-actions-dl', f);
+ }, []);
+ const dl = window.CC_ACTIONS_DL || null;
+ const st = dl ? dl.estado() : { activo: false, msg: '', error: null, quota: false };
+ const res = dl ? dl.resumen() : { conEventos: 0, total: 0, completos: 0, pendientes: 0 };
+ const listaPartidos = dl ? dl.lista() : [];
+ const [urlNuevo, setUrlNuevo] = p4State('');
+ const [jNuevo, setJNuevo] = p4State('16');
+ const [avisoLink, setAvisoLink] = p4State('');
+ const [verCmd, setVerCmd] = p4State(false);
+ const [ruta, setRuta] = p4State(() => { try { return localStorage.getItem('cc_ruta_carpeta_v1') || '~/Desktop/colocoloapp/ColoColo'; } catch (e) { return '~/Desktop/colocoloapp/ColoColo'; } });
+ const [copiado, setCopiado] = p4State(false);
+ const rutaSh = ruta.trim().includes(' ') ? '"' + ruta.trim() + '"' : ruta.trim();
+ const cmd = 'cd ' + rutaSh + ' && python3.11 scripts/update_player_actions.py';
+ const copiar = () => { const fin = () => { setCopiado(true); setTimeout(() => setCopiado(false), 1600); }; try { navigator.clipboard.writeText(cmd).then(fin, fin); } catch (e) { fin(); } };
+ const fxDe = j => { let out = null; try { (CC_DATA.fixture || []).forEach(x => { if (x && String(x.j) === String(j)) out = x; }); } catch (e) {} return out; };
+ const EST = { completo: ['Completado', 'cc-pill-v'], parcial: ['Parcial', 'cc-pill-pendiente'], pendiente: ['Pendiente', 'cc-pill-gris'] };
+
+ return (
+  <Card className="cc-pad">
+   <div className="cc-chart-head">
+    <h3 className="cc-card-title">Acciones por jugador</h3>
+    <span className={'cc-pill ' + (res.total && res.completos >= res.total ? 'cc-pill-v' : 'cc-pill-pendiente')}>{res.completos} de {res.total} completados</span>
+   </div>
+   <p className="cc-card-note">Descarga desde la plataforma los eventos espaciales de cada jugador (pases, centros, regates, defensivas…). Va guardando a medida que avanza: si se corta o pausas, retoma <strong>solo lo faltante</strong>. Un partido queda <strong>Completado</strong> cuando todos sus jugadores con minutos tienen sus eventos. Al final usa «Exportar archivo» y reemplaza <code>app/cc-actions-data.js</code> en tu carpeta para dejarlo permanente.</p>
+
+   <div className="cc-cat-acciones">
+    {!st.activo
+     ? <button className="cc-btn-primary" style={{ width: 'auto' }} onClick={() => dl && dl.descargar()} disabled={!dl || res.pendientes === 0}>
+        {res.pendientes > 0 ? 'Descargar todos los pendientes (' + res.pendientes + ')' : 'Todo completado ✓'}
+       </button>
+     : <button className="cc-btn-ghost" onClick={() => dl && dl.cancelar()}>Pausar</button>}
+    {res.conEventos > 0 && <button className="cc-btn-ghost" onClick={() => dl && dl.exportar()}>Exportar archivo (cc-actions-data.js)</button>}
+   </div>
+
+   {(st.activo || st.msg) ? (
+    <div className={'cc-dl-status' + (st.activo ? ' activo' : '')}>
+     {st.activo && <span className="cc-dl-spin"></span>}
+     <span>{st.msg}</span>
+    </div>
+   ) : null}
+   {st.quota && <p className="cc-card-note" style={{ color: 'var(--rojo)' }}>El almacenamiento del navegador está lleno: exporta el archivo ahora para no perder lo descargado.</p>}
+
+   <div className="cc-dl-lista">
+    {listaPartidos.map(p => {
+     const f = fxDe(p.j);
+     const par = EST[p.estado] || EST.pendiente;
+     return (
+      <div key={p.eventId} className={'cc-dl-row' + (p.estado === 'completo' ? ' ok' : '')}>
+       <span className="cc-dl-row-j">F{p.j}</span>
+       <span className="cc-dl-row-rival">{f ? (f.local ? 'vs ' : '@ ') + f.rival : 'Partido ' + p.eventId}</span>
+       <span className={'cc-pill ' + par[1]}>{par[0]}{p.estado === 'completo' ? ' ✓' : ''}</span>
+       {p.estado !== 'completo' && !st.activo && dl && (
+        <button className="cc-btn-mini" onClick={() => dl.descargar(p.eventId)}>Descargar</button>
+       )}
+      </div>
+     );
+    })}
+    {!listaPartidos.length && <p className="cc-empty">Sin partidos con identificador conocido.</p>}
+   </div>
+
+   <div className="cc-dl-add">
+    <span className="cc-esc-sub">Agregar partido por link</span>
+    <p className="cc-card-note">Para fechas nuevas: pega el link del partido, elige su jornada y la plataforma baja la alineación y todas las acciones.</p>
+    <div className="cc-dl-add-grid">
+     <label className="cc-select-wrap"><span className="cc-select-label">Link del partido</span>
+      <input className="cc-input" placeholder="https://www.sofascore.com/football/match/…#id:15353060" value={urlNuevo} onChange={e => setUrlNuevo(e.target.value)}></input>
+     </label>
+     <label className="cc-select-wrap"><span className="cc-select-label">Jornada</span>
+      <select className="cc-dt-wsel cc-dl-jsel" value={jNuevo} onChange={e => setJNuevo(e.target.value)}>
+       {(CC_DATA.fixture || []).map(x => <option key={x.j} value={x.j}>{'F' + x.j + ' · ' + (x.local ? 'vs' : '@') + ' ' + x.rival}</option>)}
+      </select>
+     </label>
+     <button className="cc-btn-primary cc-dl-add-btn" disabled={!dl || st.activo || !urlNuevo.trim()}
+      onClick={() => { setAvisoLink(''); dl.agregarPorLink(urlNuevo.trim(), jNuevo).then(() => setUrlNuevo('')).catch(e => setAvisoLink(String((e && e.message) || e))); }}>
+      Agregar y descargar
+     </button>
+    </div>
+    {avisoLink && <p className="cc-card-note" style={{ color: 'var(--rojo)' }}>{avisoLink}</p>}
+   </div>
+
+   <button className="cc-btn-ghost cc-dl-toggle" onClick={() => setVerCmd(!verCmd)}>{verCmd ? 'Ocultar plan B (Terminal)' : 'Plan B: descargar desde Terminal'}</button>
+   {verCmd && (
+    <React.Fragment>
+     <div className="cc-form-grid">
+      <label className="cc-select-wrap"><span className="cc-select-label">Carpeta del proyecto en tu Mac</span>
+       <input className="cc-input" value={ruta} onChange={e => { setRuta(e.target.value); try { localStorage.setItem('cc_ruta_carpeta_v1', e.target.value); } catch (err) {} }}></input>
+      </label>
+     </div>
+     <div className="cc-cmd-box">
+      <code>{cmd}</code>
+      <button className="cc-btn-primary cc-cmd-btn" onClick={copiar}>{copiado ? 'Copiado ✓' : 'Copiar comando'}</button>
+     </div>
+     <p className="cc-card-note">Primera vez: <code>python3.11 -m pip install curl_cffi</code>. El script se hace pasar por Chrome real, toma cookies de la portada y baja alineación + eventos por jugador; escribe el mismo archivo.</p>
+    </React.Fragment>
+   )}
+  </Card>
  );
 }
 
@@ -1288,6 +1446,7 @@ function PageConfig({ usuario }) {
      </Card>
      <FixtureConfig usuario={usuario}></FixtureConfig>
      <SubirShotmaps></SubirShotmaps>
+     <AccionesScript></AccionesScript>
     </React.Fragment>
    )}
 
@@ -1482,7 +1641,7 @@ function PageUsuarios({ sesion }) {
 
    <Card className="cc-pad cc-aviso">
     <Icon name="candado" size={18}></Icon>
-    <p><strong>Administrador</strong> gestiona usuarios y datos · <strong>Editor</strong> crea informes y carga archivos · <strong>Visita</strong> solo lectura. La cuenta principal no puede ser eliminada ni degradada.</p>
+    <p><strong>Administrador</strong> gestiona usuarios y datos · <strong>Editor</strong> crea informes, carga archivos y edita Captación · <strong>Visita</strong> solo lectura. La cuenta principal no puede ser eliminada ni degradada.</p>
    </Card>
   </div>
  );
