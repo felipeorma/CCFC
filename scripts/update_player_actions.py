@@ -219,10 +219,32 @@ def eventos_compactos(data):
     return eventos
 
 
+def compact_avg(data, home_es_cc):
+    def lado(arr):
+        out = []
+        for it in arr or []:
+            pl = (it or {}).get("player") or {}
+            if pl.get("id") is None or not pl.get("name"):
+                continue
+            try:
+                x = round(float(it.get("averageX")), 1)
+                y = round(float(it.get("averageY")), 1)
+            except (TypeError, ValueError):
+                continue
+            out.append({"i": pl["id"], "n": pl["name"], "d": pl.get("jerseyNumber") or it.get("jerseyNumber") or "",
+                        "x": x, "y": y, "c": it.get("pointsCount") or 0, "s": bool(it.get("isSubstitute"))})
+        return out
+    home = lado((data or {}).get("home"))
+    away = lado((data or {}).get("away"))
+    return {"cc": home, "rv": away} if home_es_cc else {"cc": away, "rv": home}
+
+
 def esta_completo(item, jugados):
     if not item or not (item.get("cc") or item.get("rv")):
         return False
     acciones = item.get("actions") or {}
+    if not item.get("avgPos"):
+        return False
     return bool(jugados) and all(isinstance(acciones.get(str(p["id"])), list) for p in jugados)
 
 
@@ -289,12 +311,19 @@ def main():
             "cc": [j for j in jugadores if j["lado"] == "cc"],
             "rv": [j for j in jugadores if j["lado"] == "rv"],
             "actions": dict(previo.get("actions") or {}),
+            "avgPos": previo.get("avgPos"),
             "errors": {},
             "updatedAt": previo.get("updatedAt"),
         }
         try:
             # 1) mapa nombre → id real de SofaScore (una vez por partido)
             sofa_ids = sofascore.get_player_ids(p["eventId"], referer=referer)
+            if not item.get("avgPos"):
+                try:
+                    ap = sofascore.get_json("api/v1/event/%s/average-positions" % p["eventId"], referer=referer)
+                    item["avgPos"] = compact_avg(ap, p["homeEsCC"])
+                except Exception as e:
+                    item["errors"]["_avgpos"] = "posiciones: %s" % e
             ok = fallos = 0
             # 2) eventos de cada jugador que jugó
             for j in jugadores:

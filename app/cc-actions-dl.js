@@ -72,7 +72,7 @@
     if (!jug.length) return 'pendiente';
     var acc = it.actions || {};
     var done = jug.every(function (x) { return Array.isArray(acc[String(x.id)]); });
-    if (done) return 'completo';
+    if (done) return it.avgPos ? 'completo' : 'parcial'; // sin posiciones promedio aún: falta 1 descarga
     var alguno = jug.some(function (x) { return Array.isArray(acc[String(x.id)]) && acc[String(x.id)].length; });
     return alguno ? 'parcial' : 'pendiente';
   }
@@ -112,6 +112,21 @@
   }
 
   function num(v) { var n = Number(v); return isFinite(n) ? Math.round(n * 100) / 100 : null; }
+
+  // Posiciones promedio del partido → { cc: [{i,n,d,x,y,c,s}], rv: [...] }
+  function compactAvg(data, homeEsCC) {
+    function lado(arr) {
+      return (arr || []).map(function (it) {
+        var pl = (it && it.player) || {};
+        if (pl.id == null || !pl.name) return null;
+        var x = Number(it.averageX), y = Number(it.averageY);
+        if (!isFinite(x) || !isFinite(y)) return null;
+        return { i: pl.id, n: pl.name, d: pl.jerseyNumber || it.jerseyNumber || '', x: Math.round(x * 10) / 10, y: Math.round(y * 10) / 10, c: it.pointsCount || 0, s: !!it.isSubstitute };
+      }).filter(Boolean);
+    }
+    var home = lado((data || {}).home), away = lado((data || {}).away);
+    return homeEsCC ? { cc: home, rv: away } : { cc: away, rv: home };
+  }
 
   function compactEvents(data) {
     var eventos = [];
@@ -158,6 +173,7 @@
           j: p.j, eventId: p.eventId, homeEsCC: p.homeEsCC,
           cc: [], rv: [],
           actions: (previo.actions && typeof previo.actions === 'object') ? previo.actions : {},
+          avgPos: previo.avgPos || null,
           errors: {},
           updatedAt: null
         };
@@ -173,6 +189,16 @@
         if (!jugadores.length) throw new Error('La alineación llegó vacía — reintenta más tarde.');
         item.cc = jugadores.filter(function (x) { return x.lado === 'cc'; });
         item.rv = jugadores.filter(function (x) { return x.lado === 'rv'; });
+
+        if (!item.avgPos) {
+          estado.msg = 'F' + p.j + ' · posiciones promedio…'; emitir();
+          try {
+            var ap = await fetchApi('/event/' + p.eventId + '/average-positions');
+            item.avgPos = compactAvg(ap, p.homeEsCC);
+          } catch (e3) {
+            item.errors._avgpos = 'posiciones: ' + String((e3 && e3.message) || e3);
+          }
+        }
 
         var conMin = jugadores.filter(function (x) { return (x.minutos || 0) > 0; });
         for (var k = 0; k < conMin.length; k++) {

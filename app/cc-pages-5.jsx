@@ -256,6 +256,88 @@ function FilaMetrica({ label, a, b, menosEsMejor, fmt }) {
 }
 
 // ---------------- Reporte Post-Partido ----------------
+// ---------- Posiciones promedio (por partido) ----------
+function avgApellido(n) { const parts = String(n || '').trim().split(' '); return parts.length > 1 ? parts[parts.length - 1] : (parts[0] || ''); }
+
+function CCAvgPosiciones({ p, eventId }) {
+ const [equipo, setEquipo] = p5State('ambos');
+ const [, setTick] = p5State(0);
+ React.useEffect(() => {
+  const f = () => setTick(t => t + 1);
+  window.addEventListener('cc-actions-dl', f);
+  return () => window.removeEventListener('cc-actions-dl', f);
+ }, []);
+ const item = eventId != null && window.CC_ACTIONS_BUNDLE ? window.CC_ACTIONS_BUNDLE[String(eventId)] : null;
+ const avg = item && item.avgPos ? item.avgPos : null;
+
+ const puntos = p5Memo(() => {
+  if (!avg) return [];
+  const out = [];
+  ['cc', 'rv'].forEach(lado => {
+   const meta = (item && item[lado]) || [];
+   (avg[lado] || []).forEach(pt => {
+    const m = meta.find(x => String(x.id) === String(pt.i)) || null;
+    if ((m && m.titular === false) || pt.s) return;   // solo el XI inicial
+    const sx = lado === 'cc' ? (pt.y / 100) * 68 : 68 - (pt.y / 100) * 68;
+    const sy = lado === 'cc' ? 100 - pt.x : pt.x;
+    out.push({ lado, x: sx, y: sy, n: pt.n, d: pt.d || (m && m.dorsal) || '', min: m ? m.minutos : null });
+   });
+  });
+  return out;
+ }, [avg, item]);
+
+ const visibles = puntos.filter(t => equipo === 'ambos' || t.lado === equipo);
+ const L = { fill: 'none', stroke: 'rgba(255,255,255,0.55)', strokeWidth: 0.4 };
+
+ return (
+  <Card className="cc-pad cc-avgpos-sec">
+   <div className="cc-chart-head">
+    <h3 className="cc-card-title">Posiciones promedio</h3>
+    <div className="cc-avgpos-controles">
+     <SegTabs value={equipo} onChange={setEquipo} options={[
+      { value: 'ambos', label: 'Ambos' },
+      { value: 'cc', label: 'Colo-Colo' },
+      { value: 'rv', label: p.rival }
+     ]}></SegTabs>
+     {avg && <ExportJPGButton targetSelector=".cc-avgpos-sec" filename="posiciones-promedio" titulo="Posiciones Promedio"></ExportJPGButton>}
+    </div>
+   </div>
+   {!avg ? (
+    <p className="cc-card-note">Este partido aún no tiene las posiciones promedio descargadas. Ve a <strong>Configuración → Datos Sofascore → Acciones por jugador</strong> y descárgalo (si ya estaba descargado aparecerá como «Parcial»: al pulsar Descargar solo baja lo que falta).</p>
+   ) : (
+    <React.Fragment>
+     <p className="cc-card-note">Ubicación media de las acciones de cada titular en este partido · Colo-Colo ataca hacia arriba. Pasa el cursor por un punto para ver el nombre y los minutos.</p>
+     <div className="cc-avgpos-wrap">
+      <svg viewBox="0 0 68 100" className="cc-avgpos-svg" preserveAspectRatio="xMidYMid meet">
+       <rect x="0" y="0" width="68" height="100" rx="1.4" fill="#1b6f40"></rect>
+       <rect x="1.5" y="1.5" width="65" height="97" {...L}></rect>
+       <line x1="1.5" y1="50" x2="66.5" y2="50" {...L}></line>
+       <circle cx="34" cy="50" r="9.15" {...L}></circle>
+       <circle cx="34" cy="50" r="0.5" fill="rgba(255,255,255,0.55)" stroke="none"></circle>
+       <rect x="13.85" y="81.5" width="40.3" height="16.5" {...L}></rect>
+       <rect x="24.84" y="92.5" width="18.32" height="5.5" {...L}></rect>
+       <rect x="13.85" y="1.5" width="40.3" height="16.5" {...L}></rect>
+       <rect x="24.84" y="1.5" width="18.32" height="5.5" {...L}></rect>
+       {visibles.map((t, i) => (
+        <g key={i} className="cc-avgpos-tok">
+         <title>{t.n + (t.min != null ? ' · ' + t.min + String.fromCharCode(39) : '')}</title>
+         <circle cx={t.x} cy={t.y} r="2.7" fill={t.lado === 'cc' ? '#0b0b0d' : '#BE1622'} stroke="#fff" strokeWidth="0.45"></circle>
+         {t.d ? <text x={t.x} y={t.y + 0.9} textAnchor="middle" fontSize="2.5" fontWeight="800" fill="#fff">{t.d}</text> : null}
+         <text x={t.x} y={t.y + 5.4} textAnchor="middle" fontSize="2.3" fontWeight="700" fill="#fff" stroke="rgba(0,0,0,0.55)" strokeWidth="0.35" paintOrder="stroke">{avgApellido(t.n)}</text>
+        </g>
+       ))}
+      </svg>
+     </div>
+     <div className="cc-avgpos-leyenda">
+      <span><i className="cc-avgpos-dot cc"></i> Colo-Colo</span>
+      <span><i className="cc-avgpos-dot rv"></i> {p.rival}</span>
+     </div>
+    </React.Fragment>
+   )}
+  </Card>
+ );
+}
+
 function PageReporte() {
  const [lado, setLado] = p5State('cc');
  const [jugadorSel, setJugadorSel] = p5State(null);
@@ -578,6 +660,8 @@ function PageReporte() {
      })()}
     </div>
    </Card>
+
+   <CCAvgPosiciones p={p} eventId={eventId}></CCAvgPosiciones>
   </div>
  );
 }

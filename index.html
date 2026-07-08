@@ -961,6 +961,16 @@ a.cc-btn-ghost { text-decoration: none; }
 .cc-dl-add-btn { width: auto; white-space: nowrap; }
 .cc-dl-jsel { width: 100%; text-align: left; padding: 9px 8px; }
 @media (max-width: 900px) { .cc-dl-add-grid, .cc-dl-row { grid-template-columns: 1fr; } }
+/* Posiciones promedio */
+.cc-avgpos-controles { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.cc-avgpos-wrap { max-width: 430px; margin: 10px auto 0; }
+.cc-avgpos-svg { width: 100%; height: auto; display: block; border-radius: 12px; }
+.cc-avgpos-tok { cursor: default; }
+.cc-avgpos-tok:hover circle { stroke-width: 0.7; }
+.cc-avgpos-leyenda { display: flex; gap: 18px; justify-content: center; margin-top: 10px; font-size: 12.5px; color: var(--ink-2); font-weight: 600; }
+.cc-avgpos-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; border: 1.5px solid #fff; box-shadow: 0 0 0 1px var(--border); vertical-align: -1px; }
+.cc-avgpos-dot.cc { background: #0b0b0d; }
+.cc-avgpos-dot.rv { background: #BE1622; }
 .cc-dt-al-car { border-color: color-mix(in srgb, var(--rojo) 35%, var(--border)); background: color-mix(in srgb, var(--rojo) 8%, transparent); color: var(--rojo); }
 .cc-dt-al-wel { border-color: #c4b5fd; background: #f3f0ff; color: #6d28d9; }
 .cc-dt-al-nut { border-color: color-mix(in srgb, #2A6FDB 35%, var(--border)); background: color-mix(in srgb, #2A6FDB 8%, transparent); color: #2A6FDB; }
