@@ -6,6 +6,10 @@
 
 const { useState: p5State, useMemo: p5Memo, useEffect: p5Effect } = React;
 
+function p5Audit(accion, entidad, detalle) {
+ try { if (window.ccAudit) window.ccAudit(accion, entidad, detalle); } catch (e) {}
+}
+
 // ---------- Media cancha vertical Opta / SofaScore ----------
 // Sistema interno:
 // depth: 0-100 · 100 = línea de gol rival
@@ -705,6 +709,7 @@ function PageCampogramaV2() {
   if (yaEsta >= 0 && yaEsta !== slotIdx) nueva[yaEsta] = nueva[slotIdx]; // intercambio
   nueva[slotIdx] = nombre;
   guardar(nueva);
+  p5Audit('editar', 'Campograma', 'Posición ' + (slotIdx + 1) + ' · ' + nombre);
   setAgarrado(null);
   setOverSlot(null);
  };
@@ -717,6 +722,7 @@ function PageCampogramaV2() {
 
  const reset = () => {
   guardar(CC_DATA.alineacion.titulares.map(t => t.nombre));
+  p5Audit('restaurar', 'Campograma', 'Once con más minutos restaurado');
   setSel(null);
  };
 

@@ -7,6 +7,10 @@
 
 const { useState: p6State, useEffect: p6Effect, useMemo: p6Memo, useRef: p6Ref } = React;
 
+function p6Audit(accion, entidad, detalle, usuario) {
+ try { if (window.ccAudit) window.ccAudit(accion, entidad, detalle, usuario); } catch (e) {}
+}
+
 function p6USD(v) {
  if (!v) return '—';
  if (v >= 1e6) return 'US$' + (v / 1e6).toFixed(1).replace('.0', '') + 'M';
@@ -119,10 +123,20 @@ function PageGestion({ usuario }) {
  // --- mutaciones ---
  const guardarJugador = (idx, datos) => {
   setPlantel(prev => idx === 'nuevo' ? [...prev, datos] : prev.map((p, i) => i === idx ? datos : p));
+  p6Audit(idx === 'nuevo' ? 'crear' : 'editar', 'Gestión de jugadores', (datos.nombre || 'Jugador') + ' · ' + (datos.estado || 'Sin estado'), usuario);
   setEditIdx(null);
  };
- const borrarJugador = idx => { setPlantel(prev => prev.filter((_, i) => i !== idx)); setEditIdx(null); };
- const guardarRep = (idx, rep) => { setPlantel(prev => prev.map((p, i) => i === idx ? { ...p, representante: rep } : p)); };
+ const borrarJugador = idx => {
+  const jugador = plantel[idx];
+  setPlantel(prev => prev.filter((_, i) => i !== idx));
+  p6Audit('eliminar', 'Gestión de jugadores', jugador ? jugador.nombre : 'Jugador #' + idx, usuario);
+  setEditIdx(null);
+ };
+ const guardarRep = (idx, rep) => {
+  const jugador = plantel[idx];
+  setPlantel(prev => prev.map((p, i) => i === idx ? { ...p, representante: rep } : p));
+  p6Audit('editar', 'Representante de jugador', (jugador ? jugador.nombre : 'Jugador #' + idx) + ' · ' + ((rep && rep.agencia) || (rep && rep.sin ? 'Sin representante' : 'Representante actualizado')), usuario);
+ };
 
  // --- ordenamiento por columna (clic en el encabezado) ---
  const [orden, setOrden] = p6State({ key: 'dorsal', dir: 1 });
@@ -561,24 +575,29 @@ function PageCaptacion({ usuario }) {
  // --- mutaciones (solo admin) ---
  const patchEscuela = (region, idx, patch) => {
   if (!puedeEditar) return;
+  const actual = (escuelas[region] || [])[idx];
   setEscuelas(prev => ({
    ...prev, [region]: (prev[region] || []).map((e, i) => i === idx ? { ...e, ...patch } : e)
   }));
+  p6Audit('editar', 'Captación · escuela', (actual ? actual.ciudad : 'Escuela') + ' · ' + (CC_NOMBRE_REG[region] || region), usuario);
  };
  const addEscuela = region => {
   if (!puedeEditar) return;
   setEscuelas(prev => ({ ...prev, [region]: [...(prev[region] || []), { ciudad: 'Nueva escuela', encargado: '', categorias: '', ninos: 0, email: '', telefono: '', destacados: [], notas: '' }] }));
+  p6Audit('crear', 'Captación · escuela', 'Nueva escuela · ' + (CC_NOMBRE_REG[region] || region), usuario);
   setSel(region);
   setEditIdx((escuelas[region] || []).length);
  };
  const delEscuela = (region, idx) => {
   if (!puedeEditar) return;
+  const actual = (escuelas[region] || [])[idx];
   setEscuelas(prev => {
    const arr = (prev[region] || []).filter((_, i) => i !== idx);
    const next = { ...prev };
    if (arr.length) next[region] = arr; else delete next[region];
    return next;
   });
+  p6Audit('eliminar', 'Captación · escuela', (actual ? actual.ciudad : 'Escuela') + ' · ' + (CC_NOMBRE_REG[region] || region), usuario);
   setEditIdx(null);
  };
 
@@ -1158,15 +1177,27 @@ function MercadoPage({ usuario, modo }) {
  const [editIdx, setEditIdx] = p6State(null);   // índice o 'nuevo'
  const [agentePopup, setAgentePopup] = p6State(null);
 
- const guardarAgente = ag => { const next = agentes.find(a => a.agencia === ag.agencia) ? agentes.map(a => a.agencia === ag.agencia ? ag : a) : [...agentes, ag]; setAgentes(next); ccSaveAgentes(next); };
+ const guardarAgente = ag => {
+  const existe = agentes.find(a => a.agencia === ag.agencia);
+  const next = existe ? agentes.map(a => a.agencia === ag.agencia ? ag : a) : [...agentes, ag];
+  setAgentes(next);
+  ccSaveAgentes(next);
+  p6Audit(existe ? 'editar' : 'crear', 'Agente de mercado', ag.agencia, usuario);
+ };
  const visibles = lista.map((o, i) => ({ o, i })).filter(({ o }) => tipo === 'Todos' || o.tipo === tipo);
 
  const guardarJugador = datos => {
   if (editIdx === 'nuevo') guardar([datos, ...lista]);
   else guardar(lista.map((x, i) => i === editIdx ? datos : x));
+  p6Audit(editIdx === 'nuevo' ? 'crear' : 'editar', modo === 'ofrecido' ? 'Jugadores ofrecidos' : 'Jugadores para ofrecer', (datos.jugador || 'Jugador') + ' · ' + (datos.tipo || 'Sin tipo'), usuario);
   setEditIdx(null);
  };
- const borrarJugador = idx => { guardar(lista.filter((_, i) => i !== idx)); setEditIdx(null); };
+ const borrarJugador = idx => {
+  const jugador = lista[idx];
+  guardar(lista.filter((_, i) => i !== idx));
+  p6Audit('eliminar', modo === 'ofrecido' ? 'Jugadores ofrecidos' : 'Jugadores para ofrecer', jugador ? jugador.jugador : 'Jugador #' + idx, usuario);
+  setEditIdx(null);
+ };
 
  const cab = modo === 'ofrecido'
   ? { icon: 'buscar', title: 'Jugadores ofrecidos', sub: 'Mercado entrante · jugadores que ofrecen a Colo-Colo' }

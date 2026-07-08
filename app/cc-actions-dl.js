@@ -19,6 +19,9 @@
   var estado = { activo: false, cancelar: false, msg: '', quota: false, error: null };
 
   function emitir() { try { window.dispatchEvent(new Event('cc-actions-dl')); } catch (e) {} }
+  function audit(accion, entidad, detalle) {
+    try { if (typeof window.ccAudit === 'function') window.ccAudit(accion, entidad, detalle); } catch (e) {}
+  }
 
   function guardar() {
     try { localStorage.setItem(KEY, JSON.stringify(store)); estado.quota = false; return true; }
@@ -220,6 +223,7 @@
         store[clave] = item;
         guardar();
         merge();
+        audit('descargar', 'Acciones Sofascore', 'F' + p.j + ' · evento ' + p.eventId + ' · ' + cuentaActions(item) + ' jugadores con eventos');
         var faltan = Object.keys(item.errors).length;
         estado.msg = 'F' + p.j + ' lista: ' + cuentaActions(item) + ' jugadores con eventos' +
           (faltan ? ' · ' + faltan + ' con error (reintenta luego)' : '');
@@ -250,6 +254,7 @@
     if (!store[String(eventId)]) {
       store[String(eventId)] = { j: Number(j), eventId: eventId, homeEsCC: homeEsCC, cc: [], rv: [], actions: {}, errors: {} };
       guardar();
+      audit('crear', 'Partido Sofascore', 'F' + j + ' · evento ' + eventId + ' agregado por link');
     }
     merge(); emitir();
     return descargar(eventId);
@@ -268,6 +273,7 @@
     a.download = 'cc-actions-data.js';
     a.click();
     setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
+    audit('exportar', 'Acciones Sofascore', Object.keys(bundle).length + ' partidos exportados a cc-actions-data.js');
   }
 
   function resumen() {
@@ -288,9 +294,9 @@
     pendientes: pendientes,
     descargar: descargar,
     agregarPorLink: agregarPorLink,
-    cancelar: function () { if (estado.activo) { estado.cancelar = true; estado.msg = 'Pausando…'; emitir(); } },
+    cancelar: function () { if (estado.activo) { estado.cancelar = true; estado.msg = 'Pausando…'; audit('pausar', 'Acciones Sofascore', 'Descarga pausada por el usuario'); emitir(); } },
     exportar: exportar,
-    limpiar: function () { store = {}; guardar(); emitir(); }
+    limpiar: function () { store = {}; guardar(); audit('eliminar', 'Acciones Sofascore', 'Descargas temporales limpiadas'); emitir(); }
   };
 
   merge();

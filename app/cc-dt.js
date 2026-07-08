@@ -54,6 +54,9 @@
     try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {}
     try { window.dispatchEvent(new Event('cc-dt-change')); } catch (e) {}
   }
+  function audit(accion, entidad, detalle) {
+    try { if (typeof window.ccAudit === 'function') window.ccAudit(accion, entidad, detalle); } catch (e) {}
+  }
 
   function statsCC() {
     try { return (window.CC_DATA.jugadores || []).filter(function (j) { return j.equipo === 'Colo-Colo'; }); } catch (e) { return []; }
@@ -239,10 +242,12 @@
       st.jug[nombre] = Object.assign({}, st.jug[nombre] || {}, patch);
       if ('mercado' in patch) syncMercado(nombre, patch.mercado || null);
       guardar();
+      audit('editar', 'Dirección técnica · jugador', nombre);
     },
     setFis: function (nombre, patch) {
       st.fis[nombre] = Object.assign({}, st.fis[nombre] || {}, patch);
       guardar();
+      audit('editar', 'Dirección técnica · físico', nombre);
     },
     setGps: function (nombre, patch) {
       st.gps[nombre] = Object.assign({ fecha: hoyISO() }, st.gps[nombre] || {}, patch);
@@ -254,6 +259,7 @@
       st.wellH[nombre] = st.wellH[nombre] || {};
       st.wellH[nombre][fecha] = Object.assign({}, st.wellH[nombre][fecha] || {}, patch);
       guardar();
+      audit('editar', 'Wellness diario', nombre + ' · ' + fecha);
     },
     delWellDia: function (nombre, fecha) {
       if (st.wellH[nombre]) {
@@ -261,6 +267,7 @@
         if (!Object.keys(st.wellH[nombre]).length) delete st.wellH[nombre];
       }
       guardar();
+      audit('eliminar', 'Wellness diario', nombre + ' · ' + fecha);
     },
     wellHist: function (nombre) {
       var h = st.wellH[nombre] || {};
@@ -269,10 +276,11 @@
     setNutri: function (nombre, patch) {
       st.nutri[nombre] = Object.assign({}, st.nutri[nombre] || {}, patch);
       guardar();
+      audit('editar', 'Plan nutricional', nombre);
     },
     getPlan: function () { return Object.assign({}, st.plan); },
-    setPlan: function (patch) { st.plan = Object.assign({}, st.plan, patch); guardar(); },
+    setPlan: function (patch) { st.plan = Object.assign({}, st.plan, patch); guardar(); audit('editar', 'Plan de partido', (st.plan.rival || 'Rival pendiente')); },
     getEntrenamiento: function () { return Object.assign({}, st.entren); },
-    setEntrenamiento: function (patch) { st.entren = Object.assign({}, st.entren, patch); guardar(); }
+    setEntrenamiento: function (patch) { st.entren = Object.assign({}, st.entren, patch); guardar(); audit('editar', 'Entrenamiento', st.entren.foco || 'Foco actualizado'); }
   };
 })();

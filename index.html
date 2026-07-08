@@ -717,6 +717,15 @@ a.cc-btn-ghost { text-decoration: none; }
 .cc-sofa-estado span { font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-3); }
 .cc-sofa-estado strong { font-size: 13.5px; }
 @media (max-width: 900px) { .cc-sofa-estado { grid-template-columns: 1fr; } }
+.cc-audit-resumen { display: grid; grid-template-columns: repeat(3, minmax(160px, 1fr)); gap: 12px; margin: 12px 0 6px; }
+.cc-audit-resumen > div { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; }
+.cc-audit-resumen span { font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-3); }
+.cc-audit-resumen strong { font-size: 16px; }
+.cc-audit-table td { vertical-align: top; }
+.cc-audit-detail { min-width: 220px; max-width: 420px; white-space: normal; }
+.cc-audit-meta { display: block; color: var(--ink-3); font-size: 12px; line-height: 1.35; margin-top: 3px; overflow-wrap: anywhere; }
+.cc-audit-where { max-width: 300px; color: var(--ink-2); font-size: 12.5px; overflow-wrap: anywhere; }
+@media (max-width: 900px) { .cc-audit-resumen { grid-template-columns: 1fr; } .cc-audit-where { max-width: 220px; } }
 /* ---------- Campograma profesional ---------- */
 .cc-cg-controls { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: var(--gap); }
 .cc-cg-controls .cc-select-wrap { min-width: 200px; }

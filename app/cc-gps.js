@@ -25,6 +25,9 @@
     try { window.dispatchEvent(new Event('cc-gps-change')); } catch (e) {}
     try { window.dispatchEvent(new Event('cc-dt-change')); } catch (e) {}
   }
+  function audit(accion, entidad, detalle) {
+    try { if (typeof window.ccAudit === 'function') window.ccAudit(accion, entidad, detalle); } catch (e) {}
+  }
 
   // ---------- utilidades ----------
   function parseLine(line, sep) {
@@ -217,10 +220,20 @@
       }
       db.sesiones.unshift(s);
       guardar();
+      audit('crear', 'GPS · sesión', (s.titulo || nombreArchivo || 'Sesión GPS') + ' · ' + s.fecha + ' · ' + s.filas.length + ' jugadores');
       return { ok: true, sesion: s };
     },
-    eliminar: function (id) { db.sesiones = db.sesiones.filter(function (s) { return s.id !== id; }); guardar(); },
-    setAlias: function (nomArchivo, nomPlantel) { db.alias[nomArchivo] = nomPlantel || ''; guardar(); },
+    eliminar: function (id) {
+      var s = db.sesiones.filter(function (x) { return x.id === id; })[0];
+      db.sesiones = db.sesiones.filter(function (x) { return x.id !== id; });
+      guardar();
+      audit('eliminar', 'GPS · sesión', s ? ((s.titulo || s.archivo || id) + ' · ' + s.fecha) : id);
+    },
+    setAlias: function (nomArchivo, nomPlantel) {
+      db.alias[nomArchivo] = nomPlantel || '';
+      guardar();
+      audit('editar', 'GPS · alias jugador', nomArchivo + ' → ' + (nomPlantel || 'sin vínculo'));
+    },
     getAlias: function () { return Object.assign({}, db.alias); },
     match: resolver,
     filasResueltas: function (id) {

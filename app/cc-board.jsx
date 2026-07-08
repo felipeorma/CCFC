@@ -12,6 +12,9 @@ function bLoad(key, def) {
   catch (e) { return def; }
 }
 function bSave(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) {} }
+function bAudit(accion, entidad, detalle, usuario) {
+  try { if (window.ccAudit) window.ccAudit(accion, entidad, detalle, usuario); } catch (e) {}
+}
 
 function bFechaCorta(iso) {
   try { return new Date(iso).toLocaleDateString('es-CL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }); }
@@ -34,11 +37,17 @@ function NotasBoard({ usuario }) {
     const t = texto.trim();
     if (!t) return;
     setNotas([{ id: 'n-' + Date.now(), autor: usuario, texto: t, fecha: new Date().toISOString(), tipo }, ...notas]);
+    bAudit('crear', 'Muro de avisos', tipo + ' · ' + t.slice(0, 60), usuario);
     setTexto('');
   };
-  const borrar = id => setNotas(notas.filter(n => n.id !== id));
+  const borrar = id => {
+    const nota = notas.find(n => n.id === id);
+    setNotas(notas.filter(n => n.id !== id));
+    bAudit('eliminar', 'Muro de avisos', nota ? (nota.tipo + ' · ' + nota.texto.slice(0, 60)) : id, usuario);
+  };
   const guardarEdit = id => {
     setNotas(notas.map(n => n.id === id ? { ...n, texto: editTexto.trim() || n.texto, editado: new Date().toISOString() } : n));
+    bAudit('editar', 'Muro de avisos', editTexto.trim().slice(0, 60) || id, usuario);
     setEditId(null);
   };
   const toggleLike = id => setNotas(notas.map(n => {
@@ -141,12 +150,22 @@ function AdminTodo({ usuario }) {
     const t = texto.trim();
     if (!t) return;
     setTareas([...tareas, { id: 'tt-' + Date.now(), texto: t, hecho: false }]);
+    bAudit('crear', 'Tarea administrativa', t.slice(0, 60), usuario);
     setTexto('');
   };
-  const toggle = id => setTareas(tareas.map(t => t.id === id ? { ...t, hecho: !t.hecho } : t));
-  const borrar = id => setTareas(tareas.filter(t => t.id !== id));
+  const toggle = id => {
+    const tarea = tareas.find(t => t.id === id);
+    setTareas(tareas.map(t => t.id === id ? { ...t, hecho: !t.hecho } : t));
+    if (tarea) bAudit('editar', 'Tarea administrativa', (tarea.hecho ? 'Reabierta · ' : 'Completada · ') + tarea.texto.slice(0, 60), usuario);
+  };
+  const borrar = id => {
+    const tarea = tareas.find(t => t.id === id);
+    setTareas(tareas.filter(t => t.id !== id));
+    bAudit('eliminar', 'Tarea administrativa', tarea ? tarea.texto.slice(0, 60) : id, usuario);
+  };
   const guardarEdit = id => {
     setTareas(tareas.map(t => t.id === id ? { ...t, texto: editTexto.trim() || t.texto } : t));
+    bAudit('editar', 'Tarea administrativa', editTexto.trim().slice(0, 60) || id, usuario);
     setEditId(null);
   };
   const pend = tareas.filter(t => !t.hecho).length;

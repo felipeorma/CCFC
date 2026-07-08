@@ -5,6 +5,10 @@
 
 const { useState: cguState, useRef: cguRef } = React;
 
+function cguAudit(accion, entidad, detalle) {
+  try { if (window.ccAudit) window.ccAudit(accion, entidad, detalle); } catch (e) {}
+}
+
 function cgApellido(n) { const p = (n || '').split(' '); return p.length > 1 ? p[p.length - 1] : n; }
 const CG_GRUPO_ORDEN = { 'Arquero': 0, 'Defensa': 1, 'Lateral': 1, 'Mediocampista': 2, 'Volante': 2, 'Pivote': 2, 'Extremo': 3, 'Delantero': 4 };
 function cgOrden(j) {
@@ -95,6 +99,7 @@ function PageCampograma() {
     if (!nombre || !nombre.trim()) return;
     const p = { nombre: nombre.trim(), formacion, titulares, rival, rivalForm, rivalTitulares };
     guardarPresets([p, ...presets.filter(x => x.nombre !== p.nombre)]);
+    cguAudit('crear', 'Preset de Campograma', p.nombre);
     setPresetSel(p.nombre);
   };
   const cargarPreset = nombre => {
@@ -106,7 +111,7 @@ function PageCampograma() {
     if (p.rivalForm) setRivalForm(p.rivalForm);
     setRivalTitulares(p.rivalTitulares || {});
   };
-  const borrarPreset = nombre => { if (nombre && window.confirm('¿Eliminar la alineación «' + nombre + '»?')) { guardarPresets(presets.filter(x => x.nombre !== nombre)); setPresetSel(''); } };
+  const borrarPreset = nombre => { if (nombre && window.confirm('¿Eliminar la alineación «' + nombre + '»?')) { guardarPresets(presets.filter(x => x.nombre !== nombre)); cguAudit('eliminar', 'Preset de Campograma', nombre); setPresetSel(''); } };
 
   // Ambas formaciones cubren TODO el campo: local ataca hacia arriba
   // (su arco abajo), rival ataca hacia abajo (su arco arriba).

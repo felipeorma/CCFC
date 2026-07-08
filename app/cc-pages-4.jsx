@@ -33,6 +33,74 @@ function ccPaginasDe(email) {
  return u.paginas;
 }
 
+// ---------- Auditoría: cambios de base local y accesos ----------
+const CC_AUDIT_KEY = 'cc_audit_log_v1';
+function ccAuditFecha(iso) {
+ if (!iso) return '—';
+ try { return new Date(iso).toLocaleString('es-CL', { dateStyle: 'short', timeStyle: 'short' }); } catch (e) { return iso; }
+}
+function ccAuditBrowser(ua) {
+ ua = ua || '';
+ if (/Edg\//.test(ua)) return 'Edge';
+ if (/OPR\//.test(ua) || /Opera/i.test(ua)) return 'Opera';
+ if (/Chrome\//.test(ua) && !/Chromium/i.test(ua)) return 'Chrome';
+ if (/Safari\//.test(ua) && !/Chrome\//.test(ua)) return 'Safari';
+ if (/Firefox\//.test(ua)) return 'Firefox';
+ return 'Navegador';
+}
+function ccAuditWhere() {
+ const nav = typeof navigator !== 'undefined' ? navigator : {};
+ const loc = typeof location !== 'undefined' ? location : {};
+ const ua = nav.userAgent || '';
+ let zona = '';
+ try { zona = Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (e) {}
+ return {
+  ruta: ((loc.origin || '') + (loc.pathname || '')) || (loc.href || ''),
+  navegador: ccAuditBrowser(ua),
+  plataforma: (nav.userAgentData && nav.userAgentData.platform) || nav.platform || '—',
+  idioma: nav.language || '',
+  zona
+ };
+}
+function ccAuditActor(usuario) {
+ if (usuario) return usuario;
+ try { return localStorage.getItem('cc_sesion') || 'Sistema'; } catch (e) {}
+ return 'Sistema';
+}
+function ccLeerAudit() {
+ try {
+  const raw = localStorage.getItem(CC_AUDIT_KEY);
+  const lista = raw ? JSON.parse(raw) : [];
+  return Array.isArray(lista) ? lista : [];
+ } catch (e) { return []; }
+}
+function ccGuardarAudit(lista) {
+ try { localStorage.setItem(CC_AUDIT_KEY, JSON.stringify((lista || []).slice(0, 800))); } catch (e) {}
+}
+function ccAudit(accion, entidad, detalle, usuario, meta) {
+ const donde = ccAuditWhere();
+ const entry = {
+  id: 'audit-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8),
+  fecha: new Date().toISOString(),
+  usuario: ccAuditActor(usuario),
+  accion: accion || 'editar',
+  entidad: entidad || 'Base de datos',
+  detalle: detalle || '',
+  ruta: donde.ruta,
+  navegador: donde.navegador,
+  plataforma: donde.plataforma,
+  idioma: donde.idioma,
+  zona: donde.zona,
+  meta: meta || null
+ };
+ ccGuardarAudit([entry, ...ccLeerAudit()]);
+ try { window.dispatchEvent(new Event('cc-audit-change')); } catch (e) {}
+ return entry;
+}
+function ccAuditAccionTxt(a) {
+ return ({ crear: 'Agregó', editar: 'Editó', eliminar: 'Eliminó', login: 'Ingresó', exportar: 'Exportó', restaurar: 'Restauró', descargar: 'Descargó', pausar: 'Pausó' })[a] || a || 'Cambio';
+}
+
 // ---------------- Informes de Scouting ----------------
 function ccLeerInformes() {
  try {
@@ -382,6 +450,7 @@ function PageScouting({ usuario }) {
   const nuevos = [informe, ...propios];
   setPropios(nuevos);
   try { localStorage.setItem('cc_informes_v1', JSON.stringify(nuevos)); } catch (e) {}
+  ccAudit('crear', 'Informe de scouting', informe.jugador + ' · ' + (informe.club || 'Sin club'), usuario);
   setCreando(false);
   setAbierto(informe.jugador);
  };
@@ -397,6 +466,7 @@ function PageScouting({ usuario }) {
    setOcultos(next);
    try { localStorage.setItem('cc_scout_ocultos_v1', JSON.stringify(next)); } catch (e) {}
   }
+  ccAudit('eliminar', 'Informe de scouting', r.jugador + ' · ' + (r.club || 'Sin club'), usuario);
  };
 
  const guardarEdicion = (key, datos) => {
@@ -410,6 +480,7 @@ function PageScouting({ usuario }) {
    setOverrides(next);
    try { localStorage.setItem('cc_scout_overrides_v1', JSON.stringify(next)); } catch (e) {}
   }
+  ccAudit('editar', 'Informe de scouting', (datos.jugador || key.split('|')[0]) + ' · ' + (datos.club || 'Sin club'), usuario);
   setEditando(null);
  };
 
@@ -420,6 +491,7 @@ function PageScouting({ usuario }) {
   const next = Object.assign({}, notas, { [key]: lista });
   setNotas(next);
   try { localStorage.setItem('cc_scout_notas_v1', JSON.stringify(next)); } catch (e) {}
+  ccAudit('crear', 'Nota scouting', key.split('|')[0] + ' · ' + t.slice(0, 60), usuario);
   setNotaTxt('');
  };
 
@@ -683,16 +755,19 @@ function GestorDatos({ temporada }) {
   const entry = { id: equipo, equipo: equipo, archivo: file.name, fecha: ccHoyISO() };
   const resto = (ds.teamFiles || []).filter(t => t.id !== equipo);
   persistir({ ...ds, teamFiles: [entry, ...resto].sort((a, b) => a.equipo.localeCompare(b.equipo, 'es')) });
+  ccAudit('editar', 'Wyscout Team Stats', equipo + ' · ' + file.name + ' · temporada ' + temporada);
   setMsg({ tipo: 'ok', texto: 'Team Stats de ' + equipo + ' actualizado (' + file.name + ').' });
  };
  const registrar = (file, tipo) => {
   if (tipo === 'team') { registrarTeam(file, equipoSel); return; }
   if (tipo === 'players') {
    persistir({ ...ds, players: { archivo: file.name, detalle: Math.round(file.size / 1024) + ' KB · subido por el usuario', fecha: ccHoyISO() } });
+   ccAudit('editar', 'Wyscout jugadores', file.name + ' · temporada ' + temporada);
    setMsg({ tipo: 'ok', texto: '«' + file.name + '» guardado en la temporada ' + temporada + '.' });
    return;
   }
   persistir({ ...ds, extra: [{ id: Date.now(), nombre: file.name, tipo: 'Adicional', fecha: ccHoyISO() }, ...(ds.extra || [])] });
+  ccAudit('crear', 'Archivo adicional', file.name + ' · temporada ' + temporada);
   setMsg({ tipo: 'ok', texto: '«' + file.name + '» guardado como archivo adicional.' });
  };
 
@@ -702,9 +777,22 @@ function GestorDatos({ temporada }) {
   Array.from(e.dataTransfer.files || []).forEach(f => registrar(f, tipoSubida));
  };
 
- const eliminarTeam = id => persistir({ ...ds, teamFiles: (ds.teamFiles || []).filter(t => t.id !== id) });
- const eliminarPlayers = () => { persistir({ ...ds, players: null }); setMsg({ tipo: 'ok', texto: 'Estadísticas de jugadores eliminadas.' }); };
- const eliminarExtra = id => persistir({ ...ds, extra: (ds.extra || []).filter(x => x.id !== id) });
+ const eliminarTeam = id => {
+  const item = (ds.teamFiles || []).find(t => t.id === id);
+  persistir({ ...ds, teamFiles: (ds.teamFiles || []).filter(t => t.id !== id) });
+  ccAudit('eliminar', 'Wyscout Team Stats', (item ? item.equipo + ' · ' + item.archivo : id) + ' · temporada ' + temporada);
+ };
+ const eliminarPlayers = () => {
+  const archivo = ds.players && ds.players.archivo;
+  persistir({ ...ds, players: null });
+  ccAudit('eliminar', 'Wyscout jugadores', (archivo || 'Archivo de jugadores') + ' · temporada ' + temporada);
+  setMsg({ tipo: 'ok', texto: 'Estadísticas de jugadores eliminadas.' });
+ };
+ const eliminarExtra = id => {
+  const item = (ds.extra || []).find(x => x.id === id);
+  persistir({ ...ds, extra: (ds.extra || []).filter(x => x.id !== id) });
+  ccAudit('eliminar', 'Archivo adicional', (item ? item.nombre : id) + ' · temporada ' + temporada);
+ };
 
  const totalEquipos = equipos.length;
  const cargados = (ds.teamFiles || []).length;
@@ -961,7 +1049,7 @@ function SubirShotmaps() {
   setCargando(true);
   setMsg(null);
   api.cargarDesdeUrl(partido.j, url.trim(), partido.local)
-   .then(r => { setMsg({ tipo: 'ok', texto: r.tiros + ' tiros cargados para P' + partido.j + ' (evento ' + r.eventId + ').' }); setUrl(''); })
+   .then(r => { setMsg({ tipo: 'ok', texto: r.tiros + ' tiros cargados para P' + partido.j + ' (evento ' + r.eventId + ').' }); ccAudit('descargar', 'Shotmap Sofascore', 'F' + partido.j + ' · evento ' + r.eventId + ' · ' + r.tiros + ' tiros'); setUrl(''); })
    .catch(err => setMsg({ tipo: 'error', texto: String(err && err.message || err) }))
    .then(() => setCargando(false));
  };
@@ -987,7 +1075,7 @@ function SubirShotmaps() {
     </label>
     <button type="submit" className="cc-btn-primary" style={{ width: 'auto', alignSelf: 'flex-end' }} disabled={cargando}>{cargando ? 'Descargando…' : 'Cargar shotmap'}</button>
     {api && partido && api.get(partido.j) && (
-     <button type="button" className="cc-btn-ghost" style={{ alignSelf: 'flex-end' }} onClick={() => { api.quitar(partido.j); setMsg({ tipo: 'ok', texto: 'Shotmap de P' + partido.j + ' eliminado.' }); }}>Quitar shotmap de P{partido.j}</button>
+     <button type="button" className="cc-btn-ghost" style={{ alignSelf: 'flex-end' }} onClick={() => { api.quitar(partido.j); ccAudit('eliminar', 'Shotmap Sofascore', 'F' + partido.j + ' · ' + partido.rival); setMsg({ tipo: 'ok', texto: 'Shotmap de P' + partido.j + ' eliminado.' }); }}>Quitar shotmap de P{partido.j}</button>
     )}
    </form>
    {msg && <p className={msg.tipo === 'ok' ? 'cc-card-note' : 'cc-login-error'} style={{ marginTop: '8px' }}>{msg.texto}</p>}
@@ -1010,7 +1098,7 @@ function SubirShotmaps() {
       <div className="cc-filters" style={{ alignItems: 'flex-end' }}>
        <Select label="Reintentar cada" value={String(c.horas)} onChange={v => api.setColaHoras(v)} options={[{ value: '1', label: '1 hora' }, { value: '3', label: '3 horas' }, { value: '6', label: '6 horas' }]}></Select>
        <button type="button" className="cc-btn-ghost" style={{ alignSelf: 'flex-end' }} disabled={c.procesando || !pend.length}
-        onClick={() => { setMsg(null); api.intentarCola().then(ok => setMsg({ tipo: typeof ok === 'number' && ok > 0 ? 'ok' : 'error', texto: (api.cola().ultimo || 'Intento terminado.') })); }}>
+        onClick={() => { setMsg(null); api.intentarCola().then(ok => { if (typeof ok === 'number' && ok > 0) ccAudit('descargar', 'Shotmaps por lote', ok + ' fecha(s) actualizadas desde Sofascore'); setMsg({ tipo: typeof ok === 'number' && ok > 0 ? 'ok' : 'error', texto: (api.cola().ultimo || 'Intento terminado.') }); }); }}>
         {c.procesando ? 'Procesando lote…' : 'Intentar ahora'}
        </button>
        <span className="cc-card-note" style={{ margin: 0 }}>
@@ -1040,7 +1128,7 @@ function SubirTabla() {
   fr.onload = () => {
    const fn = window.CC_SOFA_CARGAR_CSV;
    const res = fn ? fn(String(fr.result)) : { ok: false, error: 'Módulo de standings no disponible.' };
-   if (res.ok) { setEstado({ filas: res.filas, fecha: new Date().toISOString().slice(0, 10) }); setError(''); }
+   if (res.ok) { setEstado({ filas: res.filas, fecha: new Date().toISOString().slice(0, 10) }); setError(''); ccAudit('editar', 'Tabla Sofascore', file.name + ' · ' + res.filas + ' equipos'); }
    else setError(res.error || 'No se pudo leer el archivo.');
   };
   fr.readAsText(file);
@@ -1085,6 +1173,7 @@ function EstadoLogos() {
   e.preventDefault();
   if (window.CC_LOGOS) {
    window.CC_LOGOS.setManual(eqSel, url.trim());
+   ccAudit('editar', 'Logo de equipo', eqSel + (url.trim() ? ' · URL manual guardada' : ' · URL manual eliminada'));
    setGuardado(true);
   }
  };
@@ -1133,9 +1222,10 @@ function CatalogoConfig() {
  const regiones = window.CC_CATALOGO_REGIONS || [];
 
  const actualizarRegion = id => {
-  if (!window.CC_CATALOGO) return;
-  setCargando(id);
-  window.CC_CATALOGO.actualizarRegion(id).then(() => { setEst(window.CC_CATALOGO.estado()); setCargando(null); });
+ if (!window.CC_CATALOGO) return;
+ setCargando(id);
+  const region = regiones.find(r => r.id === id);
+  window.CC_CATALOGO.actualizarRegion(id).then(() => { setEst(window.CC_CATALOGO.estado()); setCargando(null); ccAudit('descargar', 'Catálogo país-liga-equipo', (region ? region.nombre : id) + ' actualizado'); });
  };
 
  return (
@@ -1194,11 +1284,17 @@ function EquiposTemporada({ temporada }) {
   const n = nuevo.trim(); if (!n || lista.includes(n)) return;
   persistir([...lista, n].sort((a, b) => a.localeCompare(b, 'es')));
   if (nuevoLogo.trim() && window.CC_LOGOS) CC_LOGOS.setManual(n, nuevoLogo.trim());
+  ccAudit('crear', 'Equipo de temporada', n + ' · temporada ' + temporada);
   setNuevo(''); setNuevoLogo('');
  };
- const quitar = n => { if (window.confirm('¿Quitar a ' + n + ' de la temporada ' + temporada + '? Sus datos cargados no se borran; solo deja de aparecer en los cupos.')) persistir(lista.filter(x => x !== n)); };
- const setLogo = (n, url) => { if (window.CC_LOGOS) CC_LOGOS.setManual(n, url); };
- const guardarTorneo = () => { try { localStorage.setItem('cc_logo_torneo', logoTorneo.trim()); } catch (e) {} try { window.dispatchEvent(new Event('cc-logos-ready')); } catch (e) {} };
+ const quitar = n => {
+  if (window.confirm('¿Quitar a ' + n + ' de la temporada ' + temporada + '? Sus datos cargados no se borran; solo deja de aparecer en los cupos.')) {
+   persistir(lista.filter(x => x !== n));
+   ccAudit('eliminar', 'Equipo de temporada', n + ' · temporada ' + temporada);
+  }
+ };
+ const setLogo = (n, url) => { if (window.CC_LOGOS) { CC_LOGOS.setManual(n, url); ccAudit('editar', 'Logo de equipo', n + ' · temporada ' + temporada); } };
+ const guardarTorneo = () => { try { localStorage.setItem('cc_logo_torneo', logoTorneo.trim()); } catch (e) {} try { window.dispatchEvent(new Event('cc-logos-ready')); } catch (e) {} ccAudit('editar', 'Logo del torneo', 'Temporada ' + temporada); };
  return (
   <Card className="cc-pad">
    <div className="cc-chart-head">
@@ -1247,6 +1343,7 @@ function RespaldoDatos() {
   a.href = URL.createObjectURL(blob);
   a.download = 'ccfc-respaldo-' + new Date().toISOString().slice(0, 10) + '.json';
   a.click();
+  ccAudit('exportar', 'Respaldo de datos', Object.keys(data).length + ' claves cc_* exportadas');
   setMsg('ok-exp');
  };
  const importar = e => {
@@ -1258,6 +1355,7 @@ function RespaldoDatos() {
     const j = JSON.parse(fr.result);
     if (!j || !j.datos || typeof j.datos !== 'object') throw new Error('formato');
     Object.keys(j.datos).forEach(k => { if (k.indexOf('cc_') === 0) { try { localStorage.setItem(k, j.datos[k]); } catch (e) {} } });
+    ccAudit('restaurar', 'Respaldo de datos', Object.keys(j.datos).filter(k => k.indexOf('cc_') === 0).length + ' claves cc_* restauradas');
     setMsg('ok-imp');
     setTimeout(() => location.reload(), 900);
    } catch (err) { setMsg('err'); }
@@ -1284,7 +1382,7 @@ function RespaldoDatos() {
  );
 }
 
-function FixtureFechaRow({ partido, puedeEditar }) {
+function FixtureFechaRow({ partido, puedeEditar, usuario }) {
  const [fecha, setFecha] = p4State(partido.fecha || '');
  const [hora, setHora] = p4State(partido.hora || '');
  const [msg, setMsg] = p4State(null);
@@ -1294,11 +1392,13 @@ function FixtureFechaRow({ partido, puedeEditar }) {
  const guardar = () => {
   if (!puedeEditar || !window.CC_FIXTURE) return;
   const res = window.CC_FIXTURE.guardar(partido.j, { fecha, hora });
+  if (res.ok) ccAudit('editar', 'Fecha de partido', 'F' + partido.j + ' · ' + (partido.local ? 'vs ' : 'en ') + partido.rival + ' · ' + fecha + (hora ? ' ' + hora : ''), usuario);
   setMsg(res.ok ? { ok: true, texto: 'Guardado' } : { ok: false, texto: res.error });
  };
  const restaurar = () => {
   if (!puedeEditar || !window.CC_FIXTURE) return;
   window.CC_FIXTURE.restaurar(partido.j);
+  ccAudit('restaurar', 'Fecha de partido', 'F' + partido.j + ' · ' + (partido.local ? 'vs ' : 'en ') + partido.rival, usuario);
   setMsg({ ok: true, texto: 'Fecha oficial restaurada' });
  };
  const vencida = window.CC_FIXTURE && partido.fecha < window.CC_FIXTURE.hoyISO();
@@ -1351,10 +1451,132 @@ function FixtureConfig({ usuario }) {
    <div className="cc-gestion-tabla">
     <table className="cc-tabla">
      <thead><tr><th>Jornada</th><th>Partido</th><th>Fecha oficial</th><th>Estado</th><th>Fecha vigente</th><th>Hora</th><th></th></tr></thead>
-     <tbody>{pendientes.map(m => <FixtureFechaRow key={m.j} partido={m} puedeEditar={puedeEditar}></FixtureFechaRow>)}</tbody>
+     <tbody>{pendientes.map(m => <FixtureFechaRow key={m.j} partido={m} puedeEditar={puedeEditar} usuario={usuario}></FixtureFechaRow>)}</tbody>
     </table>
    </div>
   </Card>
+ );
+}
+
+function AuditLog({ usuario }) {
+ const [, setTick] = p4State(0);
+ const [usuarioFiltro, setUsuarioFiltro] = p4State('Todos');
+ const [accionFiltro, setAccionFiltro] = p4State('Todas');
+ const [buscar, setBuscar] = p4State('');
+ p4Effect(() => {
+  const f = () => setTick(t => t + 1);
+  window.addEventListener('cc-audit-change', f);
+  return () => window.removeEventListener('cc-audit-change', f);
+ }, []);
+ const logs = ccLeerAudit();
+ const usuarios = ccLeerUsuarios();
+ const esAdmin = ccRolDe(usuario) === 'Administrador';
+ const correos = ['Todos', ...Array.from(new Set([...usuarios.map(u => u.email), ...logs.map(l => l.usuario).filter(Boolean)]))];
+ const acciones = ['Todas', ...Array.from(new Set(logs.map(l => l.accion).filter(Boolean)))];
+ const q = buscar.trim().toLowerCase();
+ const filtrados = logs.filter(l => {
+  if (usuarioFiltro !== 'Todos' && l.usuario !== usuarioFiltro) return false;
+  if (accionFiltro !== 'Todas' && l.accion !== accionFiltro) return false;
+  if (!q) return true;
+  return [l.usuario, l.accion, l.entidad, l.detalle, l.ruta, l.navegador, l.plataforma].some(v => String(v || '').toLowerCase().includes(q));
+ });
+ const ultimosLogin = usuarios.map(u => ({ usuario: u, login: logs.find(l => l.accion === 'login' && l.usuario === u.email) }));
+ const ultimoLogin = logs.find(l => l.accion === 'login');
+ const cambios = logs.filter(l => ['crear', 'editar', 'eliminar', 'restaurar'].includes(l.accion)).length;
+ const exportar = () => {
+  const esc = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+  const header = ['fecha', 'usuario', 'accion', 'entidad', 'detalle', 'ruta', 'navegador', 'plataforma', 'idioma', 'zona'];
+  const lines = [header.join(',')].concat(filtrados.map(l => header.map(k => esc(l[k])).join(',')));
+  const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'ccfc-log-auditoria-' + new Date().toISOString().slice(0, 10) + '.csv';
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+  ccAudit('exportar', 'Log de auditoría', filtrados.length + ' registros exportados', usuario);
+ };
+ const limpiar = () => {
+  if (!esAdmin) return;
+  if (!window.confirm('¿Vaciar el log de auditoría de este navegador?')) return;
+  ccGuardarAudit([]);
+  ccAudit('eliminar', 'Log de auditoría', 'Log vaciado por administrador', usuario);
+  setTick(t => t + 1);
+  try { window.dispatchEvent(new Event('cc-audit-change')); } catch (e) {}
+ };
+ const clsAccion = a => a === 'eliminar' ? 'cc-pill-pendiente' : a === 'crear' || a === 'login' ? 'cc-pill-v' : a === 'editar' ? 'cc-pill-e' : 'cc-pill-gris';
+ return (
+  <React.Fragment>
+   <Card className="cc-pad cc-config-intro">
+    <div className="cc-chart-head">
+     <h3 className="cc-card-title">Log de auditoría</h3>
+     <span className="cc-pill cc-pill-v">{logs.length} eventos guardados</span>
+    </div>
+    <div className="cc-audit-resumen">
+     <div><span>Cambios de datos</span><strong>{cambios}</strong></div>
+     <div><span>Último login</span><strong>{ultimoLogin ? ccAuditFecha(ultimoLogin.fecha) : '—'}</strong></div>
+     <div><span>Usuarios con acceso</span><strong>{usuarios.length}</strong></div>
+    </div>
+    <p className="cc-card-note">Registra altas, ediciones, eliminaciones, respaldos, cargas de datos y accesos desde este navegador. Al ser una app estática, “desde dónde” corresponde a ruta, navegador, sistema, idioma y zona horaria; no hay IP real sin un backend.</p>
+   </Card>
+
+   <Card className="cc-pad">
+    <div className="cc-chart-head">
+     <h3 className="cc-card-title">Último login por usuario</h3>
+     <button className="cc-btn-mini cc-btn-ghost" onClick={exportar}>Exportar CSV</button>
+    </div>
+    <div className="cc-gestion-tabla">
+     <table className="cc-tabla">
+      <thead><tr><th>Usuario</th><th>Rol</th><th>Último login</th><th>Desde dónde</th><th>Ruta</th></tr></thead>
+      <tbody>
+       {ultimosLogin.map(x => (
+        <tr key={x.usuario.email}>
+         <td><strong>{x.usuario.nombre}</strong><span className="cc-audit-meta">{x.usuario.email}</span></td>
+         <td><span className={'cc-pill ' + (x.usuario.rol === 'Administrador' ? 'cc-pill-v' : x.usuario.rol === 'Editor' ? 'cc-pill-e' : 'cc-pill-pendiente')}>{x.usuario.rol}</span></td>
+         <td>{x.login ? ccAuditFecha(x.login.fecha) : (x.usuario.ultimoAcceso || 'Nunca')}</td>
+         <td>{x.login ? (x.login.navegador + ' · ' + x.login.plataforma) : '—'}</td>
+         <td className="cc-audit-where">{x.login ? x.login.ruta : '—'}</td>
+        </tr>
+       ))}
+      </tbody>
+     </table>
+    </div>
+   </Card>
+
+   <Card className="cc-pad">
+    <div className="cc-chart-head">
+     <h3 className="cc-card-title">Actividad de base de datos</h3>
+     {esAdmin && <button className="cc-btn-mini cc-btn-danger" onClick={limpiar}>Vaciar log</button>}
+    </div>
+    <div className="cc-filters">
+     <Select label="Usuario" value={usuarioFiltro} onChange={setUsuarioFiltro} options={correos}></Select>
+     <Select label="Acción" value={accionFiltro} onChange={setAccionFiltro} options={acciones.map(a => a === 'Todas' ? a : { value: a, label: ccAuditAccionTxt(a) })}></Select>
+     <label className="cc-select-wrap" style={{ flex: 1, minWidth: '240px' }}>
+      <span className="cc-select-label">Buscar</span>
+      <input className="cc-input" value={buscar} onChange={e => setBuscar(e.target.value)} placeholder="Usuario, módulo, detalle…"></input>
+     </label>
+    </div>
+   </Card>
+
+   <Card>
+    <div className="cc-table-wrap cc-audit-table">
+     <table className="cc-table">
+      <thead><tr><th>Fecha</th><th>Acción</th><th>Entidad</th><th>Usuario</th><th>Desde dónde</th></tr></thead>
+      <tbody>
+       {filtrados.map(l => (
+        <tr key={l.id}>
+         <td>{ccAuditFecha(l.fecha)}</td>
+         <td><span className={'cc-pill ' + clsAccion(l.accion)}>{ccAuditAccionTxt(l.accion)}</span></td>
+         <td className="cc-audit-detail"><strong>{l.entidad}</strong><span className="cc-audit-meta">{l.detalle || '—'}</span></td>
+         <td>{l.usuario}</td>
+         <td className="cc-audit-where">{l.navegador} · {l.plataforma}<span className="cc-audit-meta">{l.ruta}</span></td>
+        </tr>
+       ))}
+       {!filtrados.length && <tr><td colSpan="5"><p className="cc-empty">Sin eventos para estos filtros.</p></td></tr>}
+      </tbody>
+     </table>
+    </div>
+   </Card>
+  </React.Fragment>
  );
 }
 
@@ -1373,7 +1595,8 @@ function PageConfig({ usuario }) {
     { value: 'wyscout', label: 'Datos Wyscout' },
     { value: 'sofascore', label: 'Datos Sofascore' },
     { value: 'logoscat', label: 'Logos y ligas' },
-    { value: 'respaldo', label: 'Respaldo' }
+    { value: 'respaldo', label: 'Respaldo' },
+    { value: 'auditoria', label: 'Log' }
    ]}></SegTabs>
 
    {tab === 'temporada' && (
@@ -1386,7 +1609,7 @@ function PageConfig({ usuario }) {
     <div className="cc-temporadas">
      <button
       className={'cc-temporada' + (temporada === '2026' ? ' activa' : '')}
-      onClick={() => { try { localStorage.setItem('cc_temporada_activa', '2026'); } catch (e) {} setTemporada('2026'); }}
+      onClick={() => { try { localStorage.setItem('cc_temporada_activa', '2026'); } catch (e) {} setTemporada('2026'); ccAudit('editar', 'Temporada activa', 'Cambió a temporada 2026', usuario); }}
      >
       <strong>2026</strong>
       <span>Liga de Primera · en curso</span>
@@ -1400,10 +1623,12 @@ function PageConfig({ usuario }) {
         if (!window.confirm('¿Iniciar la temporada 2027? Se crea un archivo interno con todo lo de 2026 (además puedes descargar un respaldo .json más abajo). Podrás volver a 2026 cuando quieras.')) return;
         const snap = {};
         for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.indexOf('cc_') === 0 && k.indexOf('cc_arch_') !== 0) { try { snap[k] = localStorage.getItem(k); } catch (e) {} } }
-        try { localStorage.setItem('cc_arch_2026', JSON.stringify({ fecha: new Date().toISOString(), datos: snap })); } catch (e) {}
+       try { localStorage.setItem('cc_arch_2026', JSON.stringify({ fecha: new Date().toISOString(), datos: snap })); } catch (e) {}
+        ccAudit('crear', 'Archivo de temporada', 'Archivó la temporada 2026 al iniciar 2027', usuario);
        }
        try { localStorage.setItem('cc_temporada_activa', '2027'); } catch (e) {}
        setTemporada('2027');
+       ccAudit('editar', 'Temporada activa', 'Cambió a temporada 2027', usuario);
       }}
      >
       <strong>2027</strong>
@@ -1451,6 +1676,7 @@ function PageConfig({ usuario }) {
    )}
 
    {tab === 'respaldo' && <RespaldoDatos></RespaldoDatos>}
+   {tab === 'auditoria' && <AuditLog usuario={usuario}></AuditLog>}
 
    {tab === 'logoscat' && (
     <React.Fragment>
@@ -1477,14 +1703,17 @@ function PageUsuarios({ sesion }) {
 
  const cambiarRol = (email, rol) => {
   guardar(usuarios.map(u => u.email === email ? Object.assign({}, u, { rol }) : u));
+  ccAudit('editar', 'Usuario', email + ' · rol cambiado a ' + rol, sesion);
  };
  const asignarPass = email => {
   if (!passVal.trim()) return;
   guardar(usuarios.map(u => u.email === email ? Object.assign({}, u, { pass: passVal.trim() }) : u));
+  ccAudit('editar', 'Usuario', email + ' · contraseña actualizada', sesion);
   setPassEdit(null); setPassVal('');
  };
  const eliminar = email => {
   guardar(usuarios.filter(u => u.email !== email));
+  ccAudit('eliminar', 'Usuario', email, sesion);
  };
  const togglePagina = (email, id) => {
   guardar(usuarios.map(u => {
@@ -1494,9 +1723,11 @@ function PageUsuarios({ sesion }) {
    const nuevas = actuales.includes(id) ? actuales.filter(x => x !== id) : [...actuales, id];
    return Object.assign({}, u, { paginas: nuevas });
   }));
+  ccAudit('editar', 'Accesos de usuario', email + ' · página ' + id, sesion);
  };
  const todasLasPaginas = email => {
   guardar(usuarios.map(u => u.email === email ? Object.assign({}, u, { paginas: undefined }) : u));
+  ccAudit('editar', 'Accesos de usuario', email + ' · acceso total', sesion);
  };
  const agregar = e => {
   e.preventDefault();
@@ -1505,6 +1736,7 @@ function PageUsuarios({ sesion }) {
    nombre: nuevo.nombre.trim(), email: nuevo.email.trim().toLowerCase(),
    rol: nuevo.rol, pass: nuevo.pass || '', ultimoAcceso: 'Nunca'
   }]);
+  ccAudit('crear', 'Usuario', nuevo.email.trim().toLowerCase() + ' · rol ' + nuevo.rol, sesion);
   setNuevo(null);
  };
 
@@ -1659,7 +1891,10 @@ function PageLogin({ onLogin }) {
   const u = lista.find(x => x.email === email.trim().toLowerCase());
   if (!u) { setError('Cuenta no encontrada. Pide acceso al administrador (datos@colocolofc.cl).'); return; }
   if (u.pass && u.pass !== pass) { setError('Contraseña incorrecta.'); return; }
-  ccGuardarUsuarios(lista.map(x => x.email === u.email ? Object.assign({}, x, { ultimoAcceso: 'Hoy' }) : x));
+  const iso = new Date().toISOString();
+  const desde = ccAuditWhere();
+  ccGuardarUsuarios(lista.map(x => x.email === u.email ? Object.assign({}, x, { ultimoAcceso: ccAuditFecha(iso), ultimoAccesoDesde: desde.navegador + ' · ' + desde.plataforma }) : x));
+  ccAudit('login', 'Sesión', 'Inicio de sesión correcto', u.email);
   onLogin(u.email);
  };
 
@@ -1689,4 +1924,4 @@ function PageLogin({ onLogin }) {
  );
 }
 
-Object.assign(window, { PageScouting, PageCampograma, PageConfig, PageUsuarios, PageLogin, EstadoLogos, SubirShotmaps, CatalogoPicker, ccLeerUsuarios, ccRolDe, ccPaginasDe });
+Object.assign(window, { PageScouting, PageCampograma, PageConfig, PageUsuarios, PageLogin, EstadoLogos, SubirShotmaps, CatalogoPicker, ccLeerUsuarios, ccRolDe, ccPaginasDe, ccAudit, ccLeerAudit, ccGuardarAudit });
