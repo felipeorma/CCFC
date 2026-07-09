@@ -342,6 +342,10 @@ def main():
                     item["actions"][pid] = eventos_compactos(raw)
                     ok += 1
                 except Exception as e:
+                    if "HTTP 404" in str(e):
+                        item["actions"][pid] = []
+                        ok += 1
+                        continue
                     item["errors"][pid] = "%s: %s" % (j["nombre"], e)
                     fallos += 1
                 time.sleep(args.player_delay + random.uniform(0, 0.6))  # pausa = no re-banear
