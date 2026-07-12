@@ -740,9 +740,14 @@ a.cc-btn-ghost { text-decoration: none; }
 .cc-audit-meta { display: block; color: var(--ink-3); font-size: 12px; line-height: 1.35; margin-top: 3px; overflow-wrap: anywhere; }
 .cc-audit-where { max-width: 300px; color: var(--ink-2); font-size: 12.5px; overflow-wrap: anywhere; }
 .cc-audit-config { border-left: 3px solid var(--accent); }
+.cc-audit-login-panel { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; padding: 12px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; }
+.cc-audit-login-status { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.cc-audit-login-status .cc-audit-meta { margin-top: 0; }
+.cc-audit-login-tools { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; }
+.cc-audit-webhook { flex: 1 1 300px; min-width: 260px; }
 .cc-audit-check { display: inline-flex; align-items: center; gap: 8px; align-self: end; min-height: 42px; color: var(--ink-2); font-size: 12.5px; font-weight: 700; }
 .cc-audit-check input { accent-color: var(--rojo); }
-@media (max-width: 900px) { .cc-audit-resumen { grid-template-columns: 1fr; } .cc-audit-where { max-width: 220px; } }
+@media (max-width: 900px) { .cc-audit-resumen { grid-template-columns: 1fr; } .cc-audit-where { max-width: 220px; } .cc-audit-login-tools { align-items: stretch; } .cc-audit-webhook { min-width: 100%; } }
 /* ---------- Campograma profesional ---------- */
 .cc-cg-controls { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: var(--gap); }
 .cc-cg-controls .cc-select-wrap { min-width: 200px; }

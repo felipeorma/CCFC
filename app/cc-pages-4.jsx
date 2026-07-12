@@ -84,14 +84,31 @@ function ccAuditConfig() {
  try {
   const raw = localStorage.getItem(CC_AUDIT_CFG_KEY);
   const cfg = raw ? JSON.parse(raw) : {};
-  return Object.assign({ abstractKey: '', webhookUrl: '', pedirGps: false }, cfg || {});
+  const next = Object.assign({ webhookUrl: '', pedirGps: false }, cfg || {});
+  delete next.abstractKey;
+  return next;
  } catch (e) {
-  return { abstractKey: '', webhookUrl: '', pedirGps: false };
+  return { webhookUrl: '', pedirGps: false };
  }
 }
 function ccGuardarAuditConfig(cfg) {
- try { localStorage.setItem(CC_AUDIT_CFG_KEY, JSON.stringify(Object.assign({ abstractKey: '', webhookUrl: '', pedirGps: false }, cfg || {}))); } catch (e) {}
+ const next = {
+  webhookUrl: String((cfg && cfg.webhookUrl) || '').trim(),
+  pedirGps: !!(cfg && cfg.pedirGps)
+ };
+ try { localStorage.setItem(CC_AUDIT_CFG_KEY, JSON.stringify(next)); } catch (e) {}
  try { window.dispatchEvent(new Event('cc-audit-change')); } catch (e) {}
+}
+function ccAuditCountryName(code) {
+ if (!code) return '';
+ const txt = String(code).trim();
+ if (txt.length !== 2) return txt;
+ try {
+  if (typeof Intl !== 'undefined' && Intl.DisplayNames) {
+   return new Intl.DisplayNames(['es'], { type: 'region' }).of(txt.toUpperCase()) || txt.toUpperCase();
+  }
+ } catch (e) {}
+ return txt.toUpperCase();
 }
 function ccAuditGeoTxt(geo) {
  if (!geo) return 'Sin geolocalización';
@@ -122,37 +139,108 @@ function ccAuditEnviarRemoto(entry) {
   fetch(cfg.webhookUrl, { method: 'POST', mode: 'no-cors', body: JSON.stringify(entry) }).catch(function () {});
  } catch (e) {}
 }
-function ccAuditFetchAbstract(key) {
- if (!key || !key.trim()) return Promise.resolve({ estado: 'sin_api', proveedor: 'local' });
+function ccAuditFetchJson(url, proveedor, normalizar) {
  const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null;
  const timer = ctl ? setTimeout(function () { try { ctl.abort(); } catch (e) {} }, 6500) : null;
- const url = 'https://ipgeolocation.abstractapi.com/v1/?api_key=' + encodeURIComponent(key.trim());
- return fetch(url, ctl ? { signal: ctl.signal } : undefined)
+ const opts = Object.assign({ cache: 'no-store' }, ctl ? { signal: ctl.signal } : {});
+ return fetch(url, opts)
   .then(function (r) {
    if (timer) clearTimeout(timer);
    if (!r.ok) throw new Error('HTTP ' + r.status);
    return r.json();
   })
   .then(function (d) {
-   return {
-    estado: 'ok',
-    proveedor: 'AbstractAPI',
+   const geo = Object.assign({ estado: 'ok', proveedor: proveedor }, normalizar(d) || {});
+   return Object.assign(geo, { proveedor: geo.proveedor || proveedor, raw: d });
+  })
+  .catch(function (e) {
+   if (timer) clearTimeout(timer);
+   return { estado: 'error', proveedor: proveedor, error: String((e && e.message) || e) };
+  });
+}
+function ccAuditFetchIpWho() {
+ return ccAuditFetchJson('https://ipwho.is/', 'ipwho.is', function (d) {
+  if (!d || d.success === false) return { estado: 'error', error: (d && d.message) || 'Respuesta inválida' };
+  return {
     ip: d.ip_address || d.ip || '',
-    pais: d.country || d.country_code || '',
+    pais: d.country || ccAuditCountryName(d.country_code),
     region: d.region || '',
     ciudad: d.city || '',
     lat: d.latitude,
     lon: d.longitude,
-    zonaIp: (d.timezone && (d.timezone.name || d.timezone.abbreviation)) || '',
-    isp: (d.connection && (d.connection.isp_name || d.connection.organization_name || d.connection.autonomous_system_organization)) || d.isp || '',
-    vpn: d.security ? !!(d.security.is_vpn || d.security.is_proxy || d.security.is_tor) : null,
-    raw: d
+    zonaIp: (d.timezone && (d.timezone.id || d.timezone.name || d.timezone.abbr)) || '',
+    isp: (d.connection && (d.connection.isp || d.connection.org || d.connection.organization)) || d.isp || '',
+    vpn: d.security ? !!(d.security.vpn || d.security.proxy || d.security.tor) : null
    };
-  })
-  .catch(function (e) {
-   if (timer) clearTimeout(timer);
-   return { estado: 'error', proveedor: 'AbstractAPI', error: String((e && e.message) || e) };
+ });
+}
+function ccAuditFetchGeoJs() {
+ return ccAuditFetchJson('https://get.geojs.io/v1/ip/geo.json', 'GeoJS', function (d) {
+  return {
+   ip: d.ip || '',
+   pais: d.country || ccAuditCountryName(d.country_code),
+   region: d.region || '',
+   ciudad: d.city || '',
+   lat: d.latitude ? Number(d.latitude) : null,
+   lon: d.longitude ? Number(d.longitude) : null,
+   zonaIp: d.timezone || '',
+   isp: d.organization_name || d.organization || '',
+   vpn: null
+  };
+ });
+}
+function ccAuditFetchIpInfo() {
+ return ccAuditFetchJson('https://ipinfo.io/json', 'ipinfo.io', function (d) {
+  const loc = String(d.loc || '').split(',');
+  return {
+   ip: d.ip || '',
+   pais: ccAuditCountryName(d.country) || '',
+   region: d.region || '',
+   ciudad: d.city || '',
+   lat: loc[0] ? Number(loc[0]) : null,
+   lon: loc[1] ? Number(loc[1]) : null,
+   zonaIp: d.timezone || '',
+   isp: d.org || '',
+   vpn: null
+  };
+ });
+}
+function ccAuditFetchDbIp() {
+ return ccAuditFetchJson('https://api.db-ip.com/v2/free/self', 'db-ip', function (d) {
+  return {
+   ip: d.ipAddress || d.ip || '',
+   pais: d.countryName || ccAuditCountryName(d.countryCode),
+   region: d.stateProv || d.region || '',
+   ciudad: d.city || '',
+   lat: null,
+   lon: null,
+   zonaIp: '',
+   isp: '',
+   vpn: null
+  };
+ });
+}
+function ccAuditFetchGeoAuto() {
+ const proveedores = [ccAuditFetchIpWho, ccAuditFetchGeoJs, ccAuditFetchIpInfo, ccAuditFetchDbIp];
+ let idx = 0;
+ let ultimo = null;
+ const next = function () {
+  if (idx >= proveedores.length) {
+   return Promise.resolve({
+    estado: 'error',
+    proveedor: 'auto',
+    error: ultimo && ultimo.error ? ultimo.error : 'No hubo respuesta de geolocalización',
+    ultimoProveedor: ultimo && ultimo.proveedor
+   });
+  }
+  const fn = proveedores[idx++];
+  return fn().then(function (geo) {
+   if (geo && geo.estado === 'ok' && (geo.ip || geo.pais || geo.ciudad)) return geo;
+   ultimo = geo;
+   return next();
   });
+ };
+ return next();
 }
 function ccAuditBrowserGps() {
  const cfg = ccAuditConfig();
@@ -176,8 +264,7 @@ function ccAuditBrowserGps() {
  });
 }
 function ccAuditCompletarLogin(entryId, email) {
- const cfg = ccAuditConfig();
- ccAuditFetchAbstract(cfg.abstractKey).then(function (geo) {
+ ccAuditFetchGeoAuto().then(function (geo) {
   return ccAuditBrowserGps().then(function (gps) {
    const patch = { geo: geo, gps: gps, meta: { geoActualizado: new Date().toISOString() } };
    const item = ccAuditActualizar(entryId, patch);
@@ -1587,17 +1674,18 @@ function AuditLog({ usuario }) {
  const loginConIp = logs.filter(l => l.accion === 'login' && l.geo && l.geo.ip).length;
  const guardarCfg = () => {
   ccGuardarAuditConfig(cfgDraft);
-  setCfgMsg('Configuración guardada en este navegador.');
+  setCfgDraft(ccAuditConfig());
+  setCfgMsg('Preferencias de login guardadas en este navegador.');
   setTimeout(() => setCfgMsg(''), 2500);
  };
  const probarGeo = () => {
   setProbandoGeo(true);
-  setCfgMsg('Probando AbstractAPI…');
-  ccAuditFetchAbstract(cfgDraft.abstractKey).then(g => {
+  setCfgMsg('Probando geolocalización automática…');
+  ccAuditFetchGeoAuto().then(g => {
    setProbandoGeo(false);
    setCfgMsg(g.estado === 'ok'
-    ? 'OK: ' + ccAuditGeoTxt(g) + ' · ' + ccAuditRedTxt(g)
-    : 'No se pudo obtener IP: ' + (g.error || 'configura una API key'));
+    ? 'OK (' + g.proveedor + '): ' + ccAuditGeoTxt(g) + ' · ' + ccAuditRedTxt(g)
+    : 'No se pudo obtener IP pública: ' + (g.error || 'intenta nuevamente'));
   });
  };
  const exportar = () => {
@@ -1642,41 +1730,34 @@ function AuditLog({ usuario }) {
      <div><span>Último login</span><strong>{ultimoLogin ? ccAuditFecha(ultimoLogin.fecha) : '—'}</strong></div>
      <div><span>Logins con IP</span><strong>{loginConIp}</strong></div>
     </div>
-    <p className="cc-card-note">Registra altas, ediciones, eliminaciones, respaldos, cargas de datos y accesos. Con AbstractAPI configurado, cada login guarda IP, ciudad, región, país, coordenadas aproximadas, ISP y zona horaria. Para historial global entre computadores, configura un webhook externo; GitHub Pages por sí solo no puede escribir una base central.</p>
-   </Card>
-
-   {esAdmin && (
-    <Card className="cc-pad cc-audit-config">
-     <div className="cc-chart-head">
-      <h3 className="cc-card-title">Geolocalización de inicios de sesión</h3>
-      <span className={'cc-pill ' + (cfgDraft.abstractKey ? 'cc-pill-v' : 'cc-pill-pendiente')}>{cfgDraft.abstractKey ? 'AbstractAPI activo' : 'Sin API key'}</span>
+    <p className="cc-card-note">Registra altas, ediciones, eliminaciones, respaldos, cargas de datos y accesos. Cada login intenta guardar automáticamente IP pública, ciudad, región, país, coordenadas aproximadas, red y zona horaria, sin API key por usuario.</p>
+    <div className="cc-audit-login-panel">
+     <div className="cc-audit-login-status">
+      <span className="cc-pill cc-pill-v">Geolocalización automática</span>
+      <span className="cc-audit-meta">Proveedores sin key: ipwho.is, GeoJS, ipinfo.io y db-ip como respaldo.</span>
      </div>
-     <div className="cc-form-grid">
-      <label className="cc-select-wrap">
-       <span className="cc-select-label">API key de AbstractAPI</span>
-       <input className="cc-input" type="password" value={cfgDraft.abstractKey || ''} onChange={e => setCfgDraft(Object.assign({}, cfgDraft, { abstractKey: e.target.value }))} placeholder="Pega tu API key"></input>
-      </label>
-      <label className="cc-select-wrap">
+     {esAdmin && (
+      <div className="cc-audit-login-tools">
+       <label className="cc-select-wrap cc-audit-webhook">
        <span className="cc-select-label">Webhook central opcional</span>
        <input className="cc-input" type="url" value={cfgDraft.webhookUrl || ''} onChange={e => setCfgDraft(Object.assign({}, cfgDraft, { webhookUrl: e.target.value }))} placeholder="https://…/audit-login"></input>
       </label>
       <label className="cc-audit-check">
        <input type="checkbox" checked={!!cfgDraft.pedirGps} onChange={e => setCfgDraft(Object.assign({}, cfgDraft, { pedirGps: e.target.checked }))}></input>
-       <span>Pedir ubicación precisa del navegador en login</span>
+       <span>Pedir GPS exacto en login</span>
       </label>
-     </div>
-     <div className="cc-esc-btns">
-      <button className="cc-btn-primary" style={{ width: 'auto' }} onClick={guardarCfg}>Guardar configuración</button>
-      <button className="cc-btn-mini cc-btn-ghost" disabled={probandoGeo || !cfgDraft.abstractKey} onClick={probarGeo}>{probandoGeo ? 'Probando…' : 'Probar IP ahora'}</button>
-     </div>
+       <button className="cc-btn-primary" style={{ width: 'auto' }} onClick={guardarCfg}>Guardar</button>
+       <button className="cc-btn-mini cc-btn-ghost" disabled={probandoGeo} onClick={probarGeo}>{probandoGeo ? 'Probando…' : 'Probar IP ahora'}</button>
+      </div>
+     )}
      {cfgMsg && <p className="cc-card-note">{cfgMsg}</p>}
-     <p className="cc-card-note">La API key queda guardada en este navegador. Si necesitas capturar logins de usuarios en otros computadores sin configurar cada navegador, hay que publicar una key cliente o usar un endpoint propio que agregue geolocalización y guarde el historial.</p>
-    </Card>
-   )}
+     <p className="cc-card-note">El historial visible aquí queda guardado en este navegador. Para ver en el panel del administrador los logins hechos desde otros computadores, conecta un webhook central que reciba estos eventos.</p>
+    </div>
+   </Card>
 
    <Card className="cc-pad">
     <div className="cc-chart-head">
-     <h3 className="cc-card-title">Último login por usuario</h3>
+     <h3 className="cc-card-title">Inicios de sesión por usuario</h3>
      <button className="cc-btn-mini cc-btn-ghost" onClick={exportar}>Exportar CSV</button>
     </div>
     <div className="cc-gestion-tabla">
@@ -2092,4 +2173,4 @@ function PageLogin({ onLogin }) {
  );
 }
 
-Object.assign(window, { PageScouting, PageCampograma, PageConfig, PageUsuarios, PageLogin, EstadoLogos, SubirShotmaps, CatalogoPicker, ccLeerUsuarios, ccRolDe, ccPaginasDe, ccAudit, ccLeerAudit, ccGuardarAudit, ccAuditConfig, ccGuardarAuditConfig, ccAuditFetchAbstract });
+Object.assign(window, { PageScouting, PageCampograma, PageConfig, PageUsuarios, PageLogin, EstadoLogos, SubirShotmaps, CatalogoPicker, ccLeerUsuarios, ccRolDe, ccPaginasDe, ccAudit, ccLeerAudit, ccGuardarAudit, ccAuditConfig, ccGuardarAuditConfig, ccAuditFetchGeoAuto });
