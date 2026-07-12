@@ -84,9 +84,10 @@ function ccAuditConfig() {
  try {
   const raw = localStorage.getItem(CC_AUDIT_CFG_KEY);
   const cfg = raw ? JSON.parse(raw) : {};
-  const next = Object.assign({ webhookUrl: '', pedirGps: false }, cfg || {});
-  delete next.abstractKey;
-  return next;
+  return {
+   webhookUrl: String((cfg && cfg.webhookUrl) || '').trim(),
+   pedirGps: !!(cfg && cfg.pedirGps)
+  };
  } catch (e) {
   return { webhookUrl: '', pedirGps: false };
  }
@@ -117,7 +118,7 @@ function ccAuditGeoTxt(geo) {
 }
 function ccAuditRedTxt(geo) {
  if (!geo) return '—';
- return [geo.ip, geo.isp].filter(Boolean).join(' · ') || '—';
+ return [geo.ip, geo.isp].filter(Boolean).join(' · ') || geo.zonaIp || '—';
 }
 function ccAuditCoordsTxt(geo) {
  if (!geo || geo.lat == null || geo.lon == null) return '';
@@ -139,108 +140,117 @@ function ccAuditEnviarRemoto(entry) {
   fetch(cfg.webhookUrl, { method: 'POST', mode: 'no-cors', body: JSON.stringify(entry) }).catch(function () {});
  } catch (e) {}
 }
-function ccAuditFetchJson(url, proveedor, normalizar) {
- const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null;
- const timer = ctl ? setTimeout(function () { try { ctl.abort(); } catch (e) {} }, 6500) : null;
- const opts = Object.assign({ cache: 'no-store' }, ctl ? { signal: ctl.signal } : {});
- return fetch(url, opts)
-  .then(function (r) {
-   if (timer) clearTimeout(timer);
-   if (!r.ok) throw new Error('HTTP ' + r.status);
-   return r.json();
-  })
-  .then(function (d) {
-   const geo = Object.assign({ estado: 'ok', proveedor: proveedor }, normalizar(d) || {});
-   return Object.assign(geo, { proveedor: geo.proveedor || proveedor, raw: d });
-  })
-  .catch(function (e) {
-   if (timer) clearTimeout(timer);
-   return { estado: 'error', proveedor: proveedor, error: String((e && e.message) || e) };
-  });
+function ccAuditLocaleRegion() {
+ const nav = typeof navigator !== 'undefined' ? navigator : {};
+ try {
+  if (typeof Intl !== 'undefined' && Intl.Locale && nav.language) {
+   return new Intl.Locale(nav.language).region || '';
+  }
+ } catch (e) {}
+ const m = String(nav.language || '').match(/[-_]([A-Za-z]{2})$/);
+ return m ? m[1].toUpperCase() : '';
 }
-function ccAuditFetchIpWho() {
- return ccAuditFetchJson('https://ipwho.is/', 'ipwho.is', function (d) {
-  if (!d || d.success === false) return { estado: 'error', error: (d && d.message) || 'Respuesta inválida' };
-  return {
-    ip: d.ip_address || d.ip || '',
-    pais: d.country || ccAuditCountryName(d.country_code),
-    region: d.region || '',
-    ciudad: d.city || '',
-    lat: d.latitude,
-    lon: d.longitude,
-    zonaIp: (d.timezone && (d.timezone.id || d.timezone.name || d.timezone.abbr)) || '',
-    isp: (d.connection && (d.connection.isp || d.connection.org || d.connection.organization)) || d.isp || '',
-    vpn: d.security ? !!(d.security.vpn || d.security.proxy || d.security.tor) : null
-   };
- });
+function ccAuditCiudadDesdeZona(zona) {
+ const z = String(zona || '');
+ if (!z || z === 'UTC' || z === 'Etc/UTC') return '';
+ const last = z.split('/').filter(Boolean).pop() || '';
+ return last.replace(/_/g, ' ');
 }
-function ccAuditFetchGeoJs() {
- return ccAuditFetchJson('https://get.geojs.io/v1/ip/geo.json', 'GeoJS', function (d) {
-  return {
-   ip: d.ip || '',
-   pais: d.country || ccAuditCountryName(d.country_code),
-   region: d.region || '',
-   ciudad: d.city || '',
-   lat: d.latitude ? Number(d.latitude) : null,
-   lon: d.longitude ? Number(d.longitude) : null,
-   zonaIp: d.timezone || '',
-   isp: d.organization_name || d.organization || '',
-   vpn: null
-  };
- });
+function ccAuditPaisPorZona(zona) {
+ const mapa = {
+  'America/Santiago': 'Chile',
+  'America/Punta_Arenas': 'Chile',
+  'Pacific/Easter': 'Chile',
+  'America/Argentina/Buenos_Aires': 'Argentina',
+  'America/Argentina/Cordoba': 'Argentina',
+  'America/Argentina/Mendoza': 'Argentina',
+  'America/Montevideo': 'Uruguay',
+  'America/Asuncion': 'Paraguay',
+  'America/La_Paz': 'Bolivia',
+  'America/Lima': 'Perú',
+  'America/Bogota': 'Colombia',
+  'America/Caracas': 'Venezuela',
+  'America/Guayaquil': 'Ecuador',
+  'America/Panama': 'Panamá',
+  'America/Mexico_City': 'México',
+  'America/New_York': 'Estados Unidos',
+  'America/Chicago': 'Estados Unidos',
+  'America/Denver': 'Estados Unidos',
+  'America/Los_Angeles': 'Estados Unidos',
+  'America/Phoenix': 'Estados Unidos',
+  'America/Anchorage': 'Estados Unidos',
+  'Pacific/Honolulu': 'Estados Unidos',
+  'America/Toronto': 'Canadá',
+  'America/Vancouver': 'Canadá',
+  'America/Edmonton': 'Canadá',
+  'America/Winnipeg': 'Canadá',
+  'America/Halifax': 'Canadá',
+  'America/St_Johns': 'Canadá',
+  'Europe/Madrid': 'España',
+  'Europe/London': 'Reino Unido',
+  'Europe/Paris': 'Francia',
+  'Europe/Berlin': 'Alemania',
+  'Europe/Rome': 'Italia',
+  'Europe/Lisbon': 'Portugal',
+  'Europe/Amsterdam': 'Países Bajos',
+  'Europe/Brussels': 'Bélgica',
+  'Europe/Zurich': 'Suiza',
+  'Europe/Stockholm': 'Suecia',
+  'Europe/Oslo': 'Noruega',
+  'Europe/Copenhagen': 'Dinamarca',
+  'Europe/Helsinki': 'Finlandia',
+  'Europe/Warsaw': 'Polonia',
+  'Europe/Vienna': 'Austria',
+  'Europe/Prague': 'Chequia',
+  'Europe/Athens': 'Grecia',
+  'Europe/Istanbul': 'Turquía',
+  'Europe/Moscow': 'Rusia',
+  'Africa/Cairo': 'Egipto',
+  'Africa/Johannesburg': 'Sudáfrica',
+  'Africa/Casablanca': 'Marruecos',
+  'Africa/Lagos': 'Nigeria',
+  'Africa/Nairobi': 'Kenia',
+  'Asia/Dubai': 'Emiratos Árabes Unidos',
+  'Asia/Riyadh': 'Arabia Saudita',
+  'Asia/Jerusalem': 'Israel',
+  'Asia/Kolkata': 'India',
+  'Asia/Bangkok': 'Tailandia',
+  'Asia/Singapore': 'Singapur',
+  'Asia/Hong_Kong': 'Hong Kong',
+  'Asia/Shanghai': 'China',
+  'Asia/Tokyo': 'Japón',
+  'Asia/Seoul': 'Corea del Sur',
+  'Australia/Sydney': 'Australia',
+  'Australia/Melbourne': 'Australia',
+  'Australia/Perth': 'Australia',
+  'Pacific/Auckland': 'Nueva Zelanda'
+ };
+ return mapa[String(zona || '')] || '';
 }
-function ccAuditFetchIpInfo() {
- return ccAuditFetchJson('https://ipinfo.io/json', 'ipinfo.io', function (d) {
-  const loc = String(d.loc || '').split(',');
-  return {
-   ip: d.ip || '',
-   pais: ccAuditCountryName(d.country) || '',
-   region: d.region || '',
-   ciudad: d.city || '',
-   lat: loc[0] ? Number(loc[0]) : null,
-   lon: loc[1] ? Number(loc[1]) : null,
-   zonaIp: d.timezone || '',
-   isp: d.org || '',
-   vpn: null
-  };
- });
-}
-function ccAuditFetchDbIp() {
- return ccAuditFetchJson('https://api.db-ip.com/v2/free/self', 'db-ip', function (d) {
-  return {
-   ip: d.ipAddress || d.ip || '',
-   pais: d.countryName || ccAuditCountryName(d.countryCode),
-   region: d.stateProv || d.region || '',
-   ciudad: d.city || '',
-   lat: null,
-   lon: null,
-   zonaIp: '',
-   isp: '',
-   vpn: null
-  };
- });
+function ccAuditGeoNavegador() {
+ const nav = typeof navigator !== 'undefined' ? navigator : {};
+ const zona = (typeof Intl !== 'undefined' && Intl.DateTimeFormat)
+  ? (Intl.DateTimeFormat().resolvedOptions().timeZone || '')
+  : '';
+ const region = ccAuditLocaleRegion();
+ return {
+  estado: 'ok',
+  proveedor: 'navegador',
+  metodo: 'zona_horaria',
+  ip: '',
+  pais: ccAuditPaisPorZona(zona) || ccAuditCountryName(region),
+  region: '',
+  ciudad: ccAuditCiudadDesdeZona(zona),
+  lat: null,
+  lon: null,
+  zonaIp: zona,
+  isp: '',
+  vpn: null,
+  idioma: nav.language || ''
+ };
 }
 function ccAuditFetchGeoAuto() {
- const proveedores = [ccAuditFetchIpWho, ccAuditFetchGeoJs, ccAuditFetchIpInfo, ccAuditFetchDbIp];
- let idx = 0;
- let ultimo = null;
- const next = function () {
-  if (idx >= proveedores.length) {
-   return Promise.resolve({
-    estado: 'error',
-    proveedor: 'auto',
-    error: ultimo && ultimo.error ? ultimo.error : 'No hubo respuesta de geolocalización',
-    ultimoProveedor: ultimo && ultimo.proveedor
-   });
-  }
-  const fn = proveedores[idx++];
-  return fn().then(function (geo) {
-   if (geo && geo.estado === 'ok' && (geo.ip || geo.pais || geo.ciudad)) return geo;
-   ultimo = geo;
-   return next();
-  });
- };
- return next();
+ return Promise.resolve(ccAuditGeoNavegador());
 }
 function ccAuditBrowserGps() {
  const cfg = ccAuditConfig();
@@ -1671,7 +1681,7 @@ function AuditLog({ usuario }) {
  const ultimosLogin = usuarios.map(u => ({ usuario: u, login: logs.find(l => l.accion === 'login' && l.usuario === u.email) }));
  const ultimoLogin = logs.find(l => l.accion === 'login');
  const cambios = logs.filter(l => ['crear', 'editar', 'eliminar', 'restaurar'].includes(l.accion)).length;
- const loginConIp = logs.filter(l => l.accion === 'login' && l.geo && l.geo.ip).length;
+ const loginConGeo = logs.filter(l => l.accion === 'login' && l.geo && (l.geo.pais || l.geo.ciudad || l.geo.zonaIp || l.geo.ip)).length;
  const guardarCfg = () => {
   ccGuardarAuditConfig(cfgDraft);
   setCfgDraft(ccAuditConfig());
@@ -1685,7 +1695,7 @@ function AuditLog({ usuario }) {
    setProbandoGeo(false);
    setCfgMsg(g.estado === 'ok'
     ? 'OK (' + g.proveedor + '): ' + ccAuditGeoTxt(g) + ' · ' + ccAuditRedTxt(g)
-    : 'No se pudo obtener IP pública: ' + (g.error || 'intenta nuevamente'));
+    : 'No se pudo estimar la ubicación: ' + (g.error || 'intenta nuevamente'));
   });
  };
  const exportar = () => {
@@ -1728,13 +1738,13 @@ function AuditLog({ usuario }) {
     <div className="cc-audit-resumen">
      <div><span>Cambios de datos</span><strong>{cambios}</strong></div>
      <div><span>Último login</span><strong>{ultimoLogin ? ccAuditFecha(ultimoLogin.fecha) : '—'}</strong></div>
-     <div><span>Logins con IP</span><strong>{loginConIp}</strong></div>
+     <div><span>Logins ubicados</span><strong>{loginConGeo}</strong></div>
     </div>
-    <p className="cc-card-note">Registra altas, ediciones, eliminaciones, respaldos, cargas de datos y accesos. Cada login intenta guardar automáticamente IP pública, ciudad, región, país, coordenadas aproximadas, red y zona horaria, sin API key por usuario.</p>
+    <p className="cc-card-note">Registra altas, ediciones, eliminaciones, respaldos, cargas de datos y accesos. Cada login guarda automáticamente zona horaria, país y ciudad aproximada desde el navegador, sin configuración por usuario.</p>
     <div className="cc-audit-login-panel">
      <div className="cc-audit-login-status">
       <span className="cc-pill cc-pill-v">Geolocalización automática</span>
-      <span className="cc-audit-meta">Proveedores sin key: ipwho.is, GeoJS, ipinfo.io y db-ip como respaldo.</span>
+      <span className="cc-audit-meta">Modo sin servicios externos: usa zona horaria e idioma del navegador; el GPS exacto es opcional y pide permiso.</span>
      </div>
      {esAdmin && (
       <div className="cc-audit-login-tools">
@@ -1762,7 +1772,7 @@ function AuditLog({ usuario }) {
     </div>
     <div className="cc-gestion-tabla">
      <table className="cc-tabla">
-      <thead><tr><th>Usuario</th><th>Rol</th><th>Último login</th><th>Ubicación</th><th>IP / red</th><th>Dispositivo</th></tr></thead>
+      <thead><tr><th>Usuario</th><th>Rol</th><th>Último login</th><th>Ubicación</th><th>Red / zona</th><th>Dispositivo</th></tr></thead>
       <tbody>
        {ultimosLogin.map(x => (
         <tr key={x.usuario.email}>
