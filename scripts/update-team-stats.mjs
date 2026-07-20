@@ -104,12 +104,17 @@ function weightedAverageMetric(teamMetrics, metric) {
 
 const source = await readFile(dataPath, 'utf8');
 const data = readCurrentData(source);
-const files = (await readdir(uploadsDir))
+const uploadEntries = await readdir(uploadsDir).catch((error) => {
+  if (error.code === 'ENOENT') return [];
+  throw error;
+});
+const files = uploadEntries
   .filter((file) => /^Team Stats.*\.xlsx$/i.test(file))
   .sort((a, b) => a.localeCompare(b, 'es'));
 
 if (!files.length) {
-  throw new Error('No se encontraron archivos Team Stats *.xlsx en uploads/');
+  console.warn('Sin archivos Team Stats *.xlsx en uploads/; se conserva app/cc-data-2026.js sin cambios.');
+  process.exit(0);
 }
 
 const currentTeamCount = Object.keys(data.metricasEquipo || {})
