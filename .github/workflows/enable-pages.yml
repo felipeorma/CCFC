@@ -2,6 +2,10 @@ name: Enable GitHub Pages
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/enable-pages.yml"
 
 permissions:
   pages: write
