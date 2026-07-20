@@ -1,0 +1,26 @@
+name: Enable GitHub Pages
+
+on:
+  workflow_dispatch:
+
+permissions:
+  pages: write
+
+jobs:
+  enable:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create Pages site serving gh-pages branch
+        run: |
+          status=$(curl -s -o resp.json -w "%{http_code}" -X POST \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/${{ github.repository }}/pages \
+            -d '{"build_type":"legacy","source":{"branch":"gh-pages","path":"/"}}')
+          cat resp.json
+          echo
+          case "$status" in
+            201) echo "Pages habilitado correctamente." ;;
+            409) echo "Pages ya estaba habilitado." ;;
+            *) echo "No se pudo habilitar Pages (HTTP $status)."; exit 1 ;;
+          esac
