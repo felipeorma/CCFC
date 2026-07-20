@@ -13,9 +13,7 @@
     "build:pages": "npm run data:team-stats && node scripts/build-pages.mjs",
     "data:team-stats": "node scripts/update-team-stats.mjs",
     "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "preview": "vite preview",
-    "predeploy": "npm run build:pages",
-    "deploy": "gh-pages -d dist --dotfiles --no-history --nojekyll --remove '{**/*,.github,.github/**}' -m \"Deploy static site\""
+    "preview": "vite preview"
   },
   "dependencies": {
     "@google/generative-ai": "^0.21.0",
