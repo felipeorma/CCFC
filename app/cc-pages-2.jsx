@@ -250,7 +250,7 @@ function PageRankEquipos() {
  const rows = entidades
   .map(e => {
    const m = CC_DATA.metricasEquipo[e];
-   return { label: e + (m._pj && m._pj < 10 ? ' · ' + m._pj + ' PJ' : ''), nombre: e, value: m[metrica] };
+   return { label: e + (m._pj && m._pj < 10 ? ' · ' + m._pj + ' PJ' : ''), nombre: e, value: m[metrica], logo: window.CC_LOGOS ? window.CC_LOGOS.teamUrl(e) : null };
   })
   .filter(r => typeof r.value === 'number')
   .sort((a, b) => asc ? a.value - b.value : b.value - a.value);
@@ -260,7 +260,7 @@ function PageRankEquipos() {
   <div className="cc-page" id="cc-rank-equipos-cap">
    <PageHeader
     icon="rankEquipos" title="Ranking de Equipos"
-    subtitle="Equipos con Team Stats Wyscout cargado · promedios de temporada completa"
+    subtitle="Equipos con estadísticas de temporada cargadas · promedios por partido"
     right={<div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}><Select label="Métrica" value={metrica} onChange={setMetrica} options={CC_METRICAS_RANKING}></Select><ExportJPGButton targetSelector="#cc-rank-equipos-cap" filename="ranking-equipos" titulo="Ranking de Equipos"></ExportJPGButton></div>}
    ></PageHeader>
 

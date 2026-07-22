@@ -640,6 +640,14 @@ function FormInforme({ onGuardar, onCancelar, inicial }) {
  );
 }
 
+// Color determinista para la etiqueta del autor (scout / comentarista)
+const CC_SCOUT_COLORES = ['#BE1622', '#1E7A45', '#2A6FDB', '#B45309', '#6D28D9', '#0E7490'];
+function ccScoutColor(nombre) {
+ let h = 0; const s = String(nombre || '');
+ for (let i = 0; i < s.length; i++) { h = ((h << 5) - h) + s.charCodeAt(i); h = h & h; }
+ return CC_SCOUT_COLORES[Math.abs(h) % CC_SCOUT_COLORES.length];
+}
+
 function PageScouting({ usuario }) {
  const rol = (() => { try { return window.ccRolDe ? window.ccRolDe(usuario) : null; } catch (e) { return null; } })();
  const puedeEditar = rol === 'Administrador' || rol === 'Editor';
@@ -756,8 +764,9 @@ function PageScouting({ usuario }) {
         <div className="cc-scout-head-id">
          {r.fotoUrl && <img src={r.fotoUrl} alt={r.jugador} className="cc-scout-foto" onError={e => { e.target.style.display = 'none'; }}></img>}
          <div>
-          <h3>{r.jugador}</h3>
-          <p className="cc-scout-meta">{r.posicion} · {r.edad} años · {r.club}</p>
+         <h3>{r.jugador}</h3>
+         <p className="cc-scout-meta">{r.posicion} · {r.edad} años · {r.club}</p>
+          {r.scout && <span className="cc-scout-autor" style={{ background: ccScoutColor(r.scout) }} title={'Informe creado por ' + r.scout}><Icon name="usuarios" size={11}></Icon> {r.scout}</span>}
           {(r.escudoUrl || r.ligaUrl || r.liga) && (
            <p className="cc-scout-clubliga">
             {r.escudoUrl && <img src={r.escudoUrl} alt="" onError={e => { e.target.style.display = 'none'; }}></img>}

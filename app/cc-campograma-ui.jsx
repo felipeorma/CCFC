@@ -48,20 +48,39 @@ function CgCancha() {
 }
 
 function PageCampograma() {
-  // Base: jugadores de Colo-Colo en los datos Wyscout + cualquiera que el
-  // admin haya agregado en Gestión de Jugadores (cc_plantel_v1). Así el
-  // plantel del campograma queda sincronizado con Gestión, sin inventar nadie.
+  // Plantel del campograma: jugadores del archivo de jugadores (club por
+  // «Equipo durante el período seleccionado») + agregados en Gestión +
+  // jugadores presentes en las ALINEACIONES REALES de los partidos cargados
+  // (p. ej. Maureira), aunque no vengan en el archivo. Sin inventar nadie.
+  // El cruce evita duplicados por nombre abreviado (inicial + apellido).
   const plantel = (() => {
+    const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+    const firma = n => { const t = norm(n).split(/\s+/).filter(Boolean); return t.length ? (t[0][0] + '|' + t[t.length - 1]) : ''; };
     const base = CC_DATA.jugadores.filter(j => j.equipo === 'Colo-Colo');
     const byName = {};
-    base.forEach(j => { byName[j.nombre] = j; });
+    const firmas = new Set();
+    base.forEach(j => { byName[j.nombre] = j; firmas.add(firma(j.nombre)); });
     try {
       const ed = JSON.parse(localStorage.getItem('cc_plantel_v1'));
       if (Array.isArray(ed)) ed.forEach(p => {
-        if (p && p.nombre && !byName[p.nombre]) {
+        if (p && p.nombre && !byName[p.nombre] && !firmas.has(firma(p.nombre))) {
           byName[p.nombre] = { nombre: p.nombre, equipo: 'Colo-Colo', posicion: p.posicionStat || p.posicion || '', grupo: p.grupo || '', min: 0, pj: 0 };
+          firmas.add(firma(p.nombre));
         }
       });
+    } catch (e) {}
+    try {
+      const B = window.CC_LINEUPS_BUNDLE || {};
+      const posMap = { G: 'GK', D: 'CB', M: 'CMF', F: 'CF' };
+      const grpMap = { G: 'Arquero', D: 'Defensa', M: 'Mediocampista', F: 'Delantero' };
+      Object.values(B).forEach(m => (m.cc || []).forEach(pl => {
+        if (!pl || !pl.n) return;
+        const f = firma(pl.n);
+        if (byName[pl.n] && byName[pl.n].deLineup) { byName[pl.n].min += (pl.min || 0); byName[pl.n].pj += 1; return; }
+        if (byName[pl.n] || firmas.has(f)) return;
+        byName[pl.n] = { nombre: pl.n, equipo: 'Colo-Colo', posicion: posMap[pl.p] || '', grupo: grpMap[pl.p] || '', min: pl.min || 0, pj: 1, deLineup: true };
+        firmas.add(f);
+      }));
     } catch (e) {}
     return Object.values(byName).sort((a, b) => (b.min || 0) - (a.min || 0));
   })();
@@ -427,7 +446,8 @@ function PageCampograma() {
               <div className="cc-cg-planbox">
                 <div className="cc-cg-plan-head"><Icon name="dt" size={14}></Icon> Plan de partido <span className="cc-cg-plan-sync">sincronizado con Dirección Técnica</span></div>
                 <div className="cc-cg-plan-grid">
-                  <label><span>Torneo</span><input className="cc-input" value={p.torneo || ''} placeholder="Campeonato chileno" onChange={e => setP({ torneo: e.target.value })}></input></label>
+                  <label><span>Torneo</span>
+                    <Select value={p.torneo || ''} onChange={v => setP({ torneo: v })} options={[{ value: '', label: '— Sin torneo —' }, 'Liga de Primera · Chile · Temporada 2026']}></Select></label>
                   <label><span>Presión</span>
                     <Select value={p.presion || ''} onChange={v => setP({ presion: v })} options={[{ value: '', label: '—' }, 'Alta', 'Media', 'Baja']}></Select></label>
                   <label><span>Línea</span>

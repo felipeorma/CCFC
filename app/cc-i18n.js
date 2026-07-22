@@ -80,6 +80,8 @@
     'Sueño (5 mejor)': 'Sleep (5 best)', 'Fatiga (1 mejor)': 'Fatigue (1 best)',
     'Dolor muscular (1 mejor)': 'Muscle soreness (1 best)', 'Estrés (1 mejor)': 'Stress (1 best)',
     'Ánimo (5 mejor)': 'Mood (5 best)',
+    'Comentarios del informe': 'Report comments', 'Comentar': 'Comment', 'Sin comentarios todavía. Sé el primero.': 'No comments yet. Be the first.',
+    'xG en vivo · Playback': 'Live xG · Playback', 'xG acumulado': 'Cumulative xG', 'Pausa': 'Pause', 'Reproducir': 'Play',
     'Energía': 'Energy', 'Estado muscular': 'Muscle status', 'Calma': 'Calmness',
     'Situación fin de temporada': 'End-of-season status',
     'Acciones por jugador — descarga con un clic': 'Player actions — one-click download',

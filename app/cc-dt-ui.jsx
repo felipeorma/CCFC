@@ -86,7 +86,7 @@ function DTPanel({ plantel, puedeEditar }) {
      <p className="cc-card-note">Elige torneo y rival (opcional) y define el bloque táctico. Se muestra en el Campograma.</p>
      <div className="cc-dt-plan cc-dt-plan-rival">
       <Select label="Torneo" value={plan.torneo || ''} onChange={v => puedeEditar && CC_DT.setPlan({ torneo: v })}
-       options={[{ value: '', label: '— Sin torneo —' }, 'Campeonato Chileno']}></Select>
+       options={[{ value: '', label: '— Sin torneo —' }, 'Liga de Primera · Chile · Temporada 2026']}></Select>
       <Select label="Rival" value={plan.rival || ''} onChange={v => puedeEditar && CC_DT.setPlan({ rival: v })}
        options={[{ value: '', label: '— Sin rival —' }, ...rivales]}></Select>
      </div>

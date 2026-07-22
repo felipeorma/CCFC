@@ -13,6 +13,7 @@ const CC_EQUIPOS_LISTA = Object.keys(CC_DATA.metricasEquipo);
 function PageCompEquipos() {
  const [eqA, setEqA] = p3State('Colo-Colo');
  const [eqB, setEqB] = p3State('Promedio adversarios');
+ const [vista, setVista] = p3State('duelo');
  const metricas = ['Goles', 'xG', 'Posesión %', 'Pases precisos %', 'PPDA', 'Duelos def. ganados %', 'Goles en contra', 'Tiros al arco %'];
  const fuenteB = CC_DATA.metricasEquipo[eqB] && CC_DATA.metricasEquipo[eqB]._fuente;
  const MENOS = new Set(['PPDA', 'Goles en contra']);
@@ -34,6 +35,12 @@ function PageCompEquipos() {
   <div className="cc-page" id="cc-comp-equipos-cap">
    <PageHeader icon="compEquipos" title="Comparación de Equipos" subtitle="Cara a cara con promedios Wyscout de temporada completa"
     right={<ExportJPGButton targetSelector="#cc-comp-equipos-cap" filename="comparacion-equipos" titulo="Comparación de Equipos"></ExportJPGButton>}></PageHeader>
+
+   <SegTabs value={vista} onChange={setVista} options={[{ value: 'duelo', label: 'Cara a cara' }, { value: 'clasica', label: 'Vista clásica' }]}></SegTabs>
+
+   {vista === 'duelo' && <CCDuelo modo="col"></CCDuelo>}
+
+   {vista === 'clasica' && <React.Fragment>
 
    <Card className="cc-pad cc-filters">
     <Select label="Equipo A" value={eqA} onChange={setEqA} options={CC_EQUIPOS_LISTA}></Select>
@@ -136,6 +143,7 @@ function PageCompEquipos() {
      </div>
     </Card>
    </div>
+  </React.Fragment>}
   </div>
  );
 }
@@ -180,6 +188,7 @@ function SelectorJugador({ etiqueta, equipo, setEquipo, jugador, setJugador }) {
 }
 
 function PageCompJugadores() {
+ const [vista, setVista] = p3State('duelo');
  const ccTop = p3Memo(() => CC_DATA.jugadores.filter(j => j.equipo === 'Colo-Colo').sort((a, b) => b.goles - a.goles)[0], []);
  const ligaTop = p3Memo(() => CC_DATA.jugadores.filter(j => j.equipo !== 'Colo-Colo').sort((a, b) => b.goles - a.goles)[0], []);
  const [eqA, setEqA] = p3State(ccTop.equipo);
@@ -195,6 +204,12 @@ function PageCompJugadores() {
   <div className="cc-page" id="cc-comp-jugadores-cap">
    <PageHeader icon="compJugadores" title="Comparación de Jugadores" subtitle={'Radar normalizado sobre los ' + CC_DATA.jugadores.length + ' jugadores de la liga (mín. 300 minutos)'}
     right={<ExportJPGButton targetSelector="#cc-comp-jugadores-cap" filename="comparacion-jugadores" titulo="Comparación de Jugadores"></ExportJPGButton>}></PageHeader>
+
+   <SegTabs value={vista} onChange={setVista} options={[{ value: 'duelo', label: 'Cara a cara' }, { value: 'clasica', label: 'Vista clásica' }]}></SegTabs>
+
+   {vista === 'duelo' && <CCDuelo modo="ind"></CCDuelo>}
+
+   {vista === 'clasica' && <React.Fragment>
 
    <Card className="cc-pvp">
     <div className="cc-pvp-hero">
@@ -271,6 +286,7 @@ function PageCompJugadores() {
      </div>
     </Card>
    </div>
+  </React.Fragment>}
   </div>
  );
 }
@@ -290,57 +306,52 @@ function PageDispJugadores() {
  const [ejeX, setEjeX] = p3State('xg');
  const [ejeY, setEjeY] = p3State('goles');
  const [equipo, setEquipo] = p3State('Toda la liga');
- const [grupo, setGrupo] = p3State('Todos');
  const [pos, setPos] = p3State('Todas');
- const [minMin, setMinMin] = p3State(450);
- const [edadMin, setEdadMin] = p3State(15);
- const [edadMax, setEdadMax] = p3State(45);
+ const edades = CC_DATA.jugadores.map(j => j.edad).filter(e => typeof e === 'number' && e > 0);
+ const eB = [Math.min.apply(null, edades), Math.max.apply(null, edades)];
+ const mB = [0, Math.max.apply(null, CC_DATA.jugadores.map(j => j.min || 0))];
+ const [edadR, setEdadR] = p3State(eB);
+ const [minR, setMinR] = p3State(mB);
 
  const lx = opcionesEje.find(o => o.value === ejeX).label;
  const ly = opcionesEje.find(o => o.value === ejeY).label;
  const equipos = ['Toda la liga', ...CC_DATA.equipos.map(e => e.nombre)];
- const grupos = ['Todos', 'Arquero', 'Defensa', 'Mediocampista', 'Extremo', 'Delantero'];
- const posiciones = ['Todas', ...[...new Set(CC_DATA.jugadores.map(j => j.posicion))].filter(p => p && p !== '—').sort()];
+ const ORDEN_POS = ['Arquero', 'Defensa central', 'Lateral', 'Volante defensivo', 'Volante mixto', 'Volante ofensivo', 'Extremo', 'Delantero'];
+ const presentes = new Set(CC_DATA.jugadores.map(j => ccPosEsp(j.posicion)));
+ const posiciones = ['Todas', ...ORDEN_POS.filter(g => presentes.has(g))];
 
  const points = CC_DATA.jugadores
-  .filter(j =>
-   j.min >= minMin &&
-   (equipo === 'Toda la liga' || j.equipo === equipo) &&
-   (grupo === 'Todos' || j.grupo === grupo) &&
-   (pos === 'Todas' || j.posicion === pos) &&
-   (j.edad === 0 || (j.edad >= edadMin && j.edad <= edadMax))
-  )
+  .filter(j => {
+   if (equipo !== 'Toda la liga' && j.equipo !== equipo) return false;
+   if (pos !== 'Todas' && ccPosEsp(j.posicion) !== pos) return false;
+   const mi = j.min || 0;
+   if (mi < minR[0]) return false;
+   if (minR[1] < mB[1] && mi > minR[1]) return false;
+   const ed = (typeof j.edad === 'number' && j.edad > 0) ? j.edad : null;
+   if (edadR[0] > eB[0] && !(ed != null && ed >= edadR[0])) return false;
+   if (edadR[1] < eB[1] && !(ed != null && ed <= edadR[1])) return false;
+   return true;
+  })
   .map(j => ({ label: j.nombre, sub: j.posicion + ' · ' + j.equipo + ' · ' + j.min + "'" + (j.edad ? ' · ' + j.edad + ' años' : ''), x: j[ejeX], y: j[ejeY], logo: window.CC_LOGOS ? window.CC_LOGOS.teamUrl(j.equipo) : null }));
 
  return (
   <div className="cc-page" id="cc-disp-jug-cap">
-   <PageHeader icon="dispJug" title="Dispersión · Jugadores" subtitle="Toda la liga · líneas punteadas = promedio del filtro"
+   <PageHeader icon="dispJug" title="Dispersión · Jugadores" subtitle="Toda la liga · cuadrantes = mediana del filtro · los puntos migran al cambiar la métrica"
     right={<ExportJPGButton targetSelector="#cc-disp-jug-cap" filename="dispersion-jugadores" titulo="Dispersión de Jugadores"></ExportJPGButton>}></PageHeader>
    <Card className="cc-pad cc-filters">
     <Select label="Eje horizontal" value={ejeX} onChange={setEjeX} options={opcionesEje}></Select>
     <Select label="Eje vertical" value={ejeY} onChange={setEjeY} options={opcionesEje}></Select>
     <Select label="Equipo" value={equipo} onChange={setEquipo} options={equipos}></Select>
-    <Select label="Línea" value={grupo} onChange={setGrupo} options={grupos}></Select>
     <Select label="Posición" value={pos} onChange={setPos} options={posiciones}></Select>
-    <label className="cc-select-wrap">
-     <span className="cc-select-label">Minutos mínimos: {minMin}'</span>
-     <input type="range" min="0" max="1400" step="90" value={minMin} onChange={e => setMinMin(Number(e.target.value))} className="cc-range"></input>
-    </label>
-    <label className="cc-select-wrap" style={{ minWidth: '120px' }}>
-     <span className="cc-select-label">Edad mín: {edadMin}</span>
-     <input type="range" min="15" max="45" step="1" value={edadMin} onChange={e => setEdadMin(Math.min(Number(e.target.value), edadMax))} className="cc-range" style={{ width: '120px' }}></input>
-    </label>
-    <label className="cc-select-wrap" style={{ minWidth: '120px' }}>
-     <span className="cc-select-label">Edad máx: {edadMax}</span>
-     <input type="range" min="15" max="45" step="1" value={edadMax} onChange={e => setEdadMax(Math.max(Number(e.target.value), edadMin))} className="cc-range" style={{ width: '120px' }}></input>
-    </label>
+    <CCRangeDual label="Edad" min={eB[0]} max={eB[1]} step={1} value={edadR} onChange={setEdadR}></CCRangeDual>
+    <CCRangeDual label="Minutos" min={0} max={mB[1]} step={30} value={minR} onChange={setMinR} suf="′"></CCRangeDual>
    </Card>
    <Card className="cc-pad">
     <h3 className="cc-card-title">{ly} vs {lx} · {points.length} jugadores</h3>
     {points.length === 0
      ? <p className="cc-empty">Ningún jugador cumple los filtros.</p>
-     : <CCScatter points={points} xLabel={lx} yLabel={ly} formatX={v => Math.round(v * 100) / 100} formatY={v => Math.round(v * 100) / 100}></CCScatter>}
-    <p className="cc-card-note">Pasa el cursor sobre un punto para identificar al jugador.</p>
+     : <CCScatterDinamico points={points} xLabel={lx} yLabel={ly} formatX={v => Math.round(v * 100) / 100} formatY={v => Math.round(v * 100) / 100}></CCScatterDinamico>}
+    <p className="cc-card-note">Pasa el cursor para identificar · clic fija un punto · los puntos migran animados al cambiar la métrica.</p>
    </Card>
   </div>
  );
@@ -370,8 +381,8 @@ function PageDispEquipos() {
    </Card>
    <Card className="cc-pad">
     <h3 className="cc-card-title">{ejeY} vs {ejeX}</h3>
-    <CCScatter points={points} highlight="Colo-Colo" xLabel={ejeX} yLabel={ejeY} formatX={v => Math.round(v * 100) / 100} formatY={v => Math.round(v * 100) / 100}></CCScatter>
-    <p className="cc-card-note">Cada punto usa el promedio por partido del Team Stats Wyscout publicado para ese club.</p>
+    <CCScatterDinamico points={points} xLabel={ejeX} yLabel={ejeY} formatX={v => Math.round(v * 100) / 100} formatY={v => Math.round(v * 100) / 100}></CCScatterDinamico>
+    <p className="cc-card-note">Cada punto usa el promedio por partido de las estadísticas de temporada del club · clic fija un punto.</p>
    </Card>
   </div>
  );

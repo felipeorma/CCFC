@@ -584,6 +584,8 @@ function PageReporte() {
    </div>
    </div>
 
+   {realShots && realShots.length > 0 && <CCXgPlayback key={'xgp-' + p.j} shots={realShots} rival={p.rival}></CCXgPlayback>}
+
    <Card className="cc-pad cc-reporte-acciones-sec" id="cc-reporte-acciones-cap">
     <div className="cc-chart-head">
      <h3 className="cc-card-title">Acciones de jugadores</h3>
@@ -706,13 +708,13 @@ function PageCampogramaV2() {
  const asignar = (slotIdx, nombre) => {
   const nueva = [...once];
   const yaEsta = nueva.indexOf(nombre);
-  if (yaEsta >= 0 && yaEsta !== slotIdx) nueva[yaEsta] = nueva[slotIdx]; // intercambio
-  nueva[slotIdx] = nombre;
-  guardar(nueva);
-  p5Audit('editar', 'Campograma', 'Posición ' + (slotIdx + 1) + ' · ' + nombre);
-  setAgarrado(null);
-  setOverSlot(null);
- };
+	 if (yaEsta >= 0 && yaEsta !== slotIdx) nueva[yaEsta] = nueva[slotIdx]; // intercambio
+	 nueva[slotIdx] = nombre;
+	 guardar(nueva);
+	 p5Audit('editar', 'Campograma', 'Posicion ' + (slotIdx + 1) + ' - ' + nombre);
+	 setAgarrado(null);
+	 setOverSlot(null);
+	};
 
  const onDropSlot = (e, slotIdx) => {
   e.preventDefault();
@@ -720,11 +722,11 @@ function PageCampogramaV2() {
   if (nombre) asignar(slotIdx, nombre);
  };
 
- const reset = () => {
-  guardar(CC_DATA.alineacion.titulares.map(t => t.nombre));
-  p5Audit('restaurar', 'Campograma', 'Once con más minutos restaurado');
-  setSel(null);
- };
+	const reset = () => {
+	 guardar(CC_DATA.alineacion.titulares.map(t => t.nombre));
+	 p5Audit('restaurar', 'Campograma', 'Once con mas minutos restaurado');
+	 setSel(null);
+	};
 
  const jugador = sel ? CC_DATA.jugadores.find(j => j.nombre === sel && j.equipo === 'Colo-Colo') : null;
  const apellido = n => {
